@@ -25,31 +25,30 @@ jobs:
       - name: Install Dependencies and Capacitor
         run: |
           npm install
-          npx cap sync android
+          npp_res=$(npx cap sync android)
+          echo "$npp_res"
 
-      - name: Bulletproof SDK 36 Injection via Python
+      - name: Bulletproof SDK 36 Injection via Clean Python Script
         run: |
-          BUILD_FILE="android/app/build.gradle"
-          if [ -f "$BUILD_FILE" ]; then
-            python3 -c '
-            with open("android/app/build.gradle", "r") as f:
-                content = f.read()
-            
-            # Substituir compileSdkVersion e targetSdkVersion independentemente do valor anterior
-            import re
-            content = re.sub(r"compileSdkVersion\s+.*", "compileSdkVersion 36", content)
-            content = re.sub(r"targetSdkVersion\s+.*", "targetSdkVersion 36", content)
-            content = re.sub(r"compileSdk\s*=.*", "compileSdk = 36", content)
-            content = re.sub(r"targetSdk\s*=.*", "targetSdk = 36", content)
-            
-            with open("android/app/build.gradle", "w") as f:
-                f.write(content)
-            print("Successfully injected SDK 36 via Python script.")
-            '
-          else
-            echo "Error: build.gradle not found!"
-            exit 1
-          fi
+          cat << 'PY_EOF' > fix_sdk.py
+import re
+
+file_path = "android/app/build.gradle"
+with open(file_path, "r", encoding="utf-8") as f:
+    content = f.read()
+
+content = re.sub(r"compileSdkVersion\s+.*", "compileSdkVersion 36", content)
+content = re.sub(r"targetSdkVersion\s+.*", "targetSdkVersion 36", content)
+content = re.sub(r"compileSdk\s*=.*", "compileSdk = 36", content)
+content = re.sub(r"targetSdk\s*=.*", "targetSdk = 36", content)
+
+with open(file_path, "w", encoding="utf-8") as f:
+    f.write(content)
+
+print("Successfully injected SDK 36 via clean Python script.")
+PY_EOF
+
+          python3 fix_sdk.py
 
       - name: Grant execute permission for gradlew
         run: cd android && chmod +x gradlew
