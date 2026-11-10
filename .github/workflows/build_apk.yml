@@ -27,28 +27,26 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: Precise SDK 36 Injection in defaultConfig
+      - name: Clean and Correct Gradle SDK 36 Injection
         run: |
           python3 -c '
           path = "android/app/build.gradle"
           with open(path, "r", encoding="utf-8") as f:
-              content = f.read()
+              lines = f.readlines()
 
-          # Substituir dentro de defaultConfig se existir, ou injetar com atribuição correta
-          import re
-          # Garantir que compileSdk e targetSdk usam atribuição ou o formato correto
-          content = re.sub(r"compileSdkVersion\s+\d+", "compileSdkVersion = 36", content)
-          content = re.sub(r"targetSdkVersion\s+\d+", "targetSdkVersion = 36", content)
-          content = re.sub(r"compileSdk\s*=\s*\d+", "compileSdk = 36", content)
-          content = re.sub(r"targetSdk\s*=\s*\d+", "targetSdk = 36", content)
-
-          # Se ainda assim o defaultConfig pedir targetSdkVersion sem sinal, vamos ajustar o bloco defaultConfig
-          if "defaultConfig {" in content and "targetSdkVersion 36" not in content:
-              content = content.replace("defaultConfig {", "defaultConfig {\n        compileSdk = 36\n        targetSdk = 36\n        minSdk = 22")
+          new_lines = []
+          for line in lines:
+              # Substituir qualquer linha antiga de compile/target SDK pelo formato limpo do Gradle
+              if "compileSdkVersion" in line or "compileSdk =" in line or "compileSdk=" in line:
+                  new_lines.append("    compileSdkVersion 36\n")
+              elif "targetSdkVersion" in line or "targetSdk =" in line or "targetSdk=" in line:
+                  new_lines.append("    targetSdkVersion 36\n")
+              else:
+                  new_lines.append(line)
 
           with open(path, "w", encoding="utf-8") as f:
-              f.write(content)
-          print("Precise SDK injection completed.")
+              f.writelines(new_lines)
+          print("Clean SDK injection completed successfully.")
           '
 
       - name: Grant execute permission for gradlew
