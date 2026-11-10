@@ -27,8 +27,9 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: Force Complete variables.gradle with SDK 36 and Test Versions
+      - name: Force SDK 36 Directly in app/build.gradle
         run: |
+          # Atualizar o variables.gradle com todas as versões necessárias
           cat << 'VAR_EOF' > android/variables.gradle
           ext {
               minSdkVersion = 22
@@ -51,7 +52,15 @@ jobs:
               cordovaAndroidVersion = '10.1.1'
           }
           VAR_EOF
-          echo "Variables.gradle updated with junitVersion."
+
+          # Forçar explicitamente no android/app/build.gradle para evitar qualquer fallback para 33
+          if [ -f "android/app/build.gradle" ]; then
+            sed -i 's/compileSdkVersion rootProject.hasProperty("compileSdkVersion") ? rootProject.ext.compileSdkVersion : 33/compileSdkVersion 36/g' android/app/build.gradle
+            sed -i 's/targetSdkVersion rootProject.hasProperty("targetSdkVersion") ? rootProject.ext.targetSdkVersion : 33/targetSdkVersion 36/g' android/app/build.gradle
+            sed -i 's/compileSdkVersion = 33/compileSdkVersion = 36/g' android/app/build.gradle
+            sed -i 's/targetSdkVersion = 33/targetSdkVersion = 36/g' android/app/build.gradle
+          fi
+          echo "Forced SDK 36 directly in build.gradle and variables.gradle."
 
       - name: Grant execute permission for gradlew
         run: cd android && chmod +x gradlew
