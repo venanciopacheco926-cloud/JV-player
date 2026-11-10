@@ -71,9 +71,15 @@ jobs:
           }
           BUILD_EOF
 
+          # Garantir o variables.gradle com minSdkVersion = 24
           printf "ext {\n    minSdkVersion = 24\n    compileSdkVersion = 36\n    targetSdkVersion = 36\n}\n" > android/variables.gradle
 
-          echo "Clean build.gradle and variables.gradle generated successfully with minSdk 24."
+          # Remover qualquer override local do aapt2 do Termux para o GitHub Actions usar o nativo do Maven
+          rm -f android/gradle.properties
+          echo "android.useAndroidX=true" > android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
+
+          echo "Clean build configuration and properties generated successfully."
 
       - name: Grant execute permission for gradlew
         run: cd android && chmod +x gradlew
