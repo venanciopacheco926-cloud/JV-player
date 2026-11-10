@@ -74,8 +74,7 @@ jobs:
           # Garantir também o variables.gradle limpo
           printf "ext {\n    minSdkVersion = 22\n    compileSdkVersion = 36\n    targetSdkVersion = 36\n}\n" > android/variables.gradle
 
-          echo "Clean build.gradle and variables.gradle generated."
-          '
+          echo "Clean build.gradle and variables.gradle generated successfully."
 
       - name: Grant execute permission for gradlew
         run: cd android && chmod +x gradlew
