@@ -27,40 +27,25 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: Force SDK 36 Directly in app/build.gradle
+      - name: Defuse Anti-Tank Mine (Force SDK 36 hardcoded in build.gradle)
         run: |
-          # Atualizar o variables.gradle com todas as versões necessárias
-          cat << 'VAR_EOF' > android/variables.gradle
-          ext {
-              minSdkVersion = 22
-              compileSdkVersion = 36
-              targetSdkVersion = 36
-              androidxActivityVersion = '1.9.0'
-              androidxAppCompatVersion = '1.7.0'
-              androidxCoreVersion = '1.15.0'
-              androidxCustomtabsVersion = '1.3.0'
-              androidxCoreSplashscreenVersion = '1.0.1'
-              coreSplashScreenVersion = '1.0.1'
-              androidxCoordinatorLayoutVersion = '1.3.0'
-              androidxFragmentVersion = '1.8.0'
-              androidxWebkitVersion = '1.12.0'
-              androidxAnnotationVersion = '1.9.0'
-              androidxProfileinstallerVersion = '1.4.0'
-              junitVersion = '4.13.2'
-              androidxJunitVersion = '1.2.1'
-              androidxEspressoCoreVersion = '3.6.1'
-              cordovaAndroidVersion = '10.1.1'
-          }
-          VAR_EOF
-
-          # Forçar explicitamente no android/app/build.gradle para evitar qualquer fallback para 33
-          if [ -f "android/app/build.gradle" ]; then
-            sed -i 's/compileSdkVersion rootProject.hasProperty("compileSdkVersion") ? rootProject.ext.compileSdkVersion : 33/compileSdkVersion 36/g' android/app/build.gradle
-            sed -i 's/targetSdkVersion rootProject.hasProperty("targetSdkVersion") ? rootProject.ext.targetSdkVersion : 33/targetSdkVersion 36/g' android/app/build.gradle
-            sed -i 's/compileSdkVersion = 33/compileSdkVersion = 36/g' android/app/build.gradle
-            sed -i 's/targetSdkVersion = 33/targetSdkVersion = 36/g' android/app/build.gradle
+          BUILD_FILE="android/app/build.gradle"
+          if [ -f "$BUILD_FILE" ]; then
+            # Substituir compileSdkVersion e targetSdkVersion por valores diretos 36
+            sed -i 's/compileSdkVersion.*/compileSdkVersion 36/g' "$BUILD_FILE"
+            sed -i 's/targetSdkVersion.*/targetSdkVersion 36/g' "$BUILD_FILE"
+            sed -i 's/compileSdk =.*/compileSdk = 36/g' "$BUILD_FILE"
+            sed -i 's/targetSdk =.*/targetSdk = 36/g' "$BUILD_FILE"
+            
+            # Garantir que se usar variáveis do rootProject, nós injetamos o valor 36 lá dentro ou substituímos a linha inteira
+            sed -i 's/compileSdkVersion rootProject.hasProperty("compileSdkVersion") ? rootProject.ext.compileSdkVersion : 33/compileSdkVersion 36/g' "$BUILD_FILE"
+            sed -i 's/targetSdkVersion rootProject.hasProperty("targetSdkVersion") ? rootProject.ext.targetSdkVersion : 33/targetSdkVersion 36/g' "$BUILD_FILE"
+            
+            echo "Hardcoded SDK 36 directly into $BUILD_FILE"
+          else
+            echo "Error: build.gradle not found!"
+            exit 1
           fi
-          echo "Forced SDK 36 directly in build.gradle and variables.gradle."
 
       - name: Grant execute permission for gradlew
         run: cd android && chmod +x gradlew
