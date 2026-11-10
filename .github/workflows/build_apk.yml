@@ -27,20 +27,23 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: Clean and Fix SDK 36 Syntax in build.gradle
+      - name: Force SDK 36 in Capacitor Variables
         run: |
-          if [ -f "android/variables.gradle" ]; then
-            sed -i 's/compileSdkVersion = [0-9]*/compileSdkVersion = 36/g' android/variables.gradle
-            sed -i 's/targetSdkVersion = [0-9]*/targetSdkVersion = 36/g' android/variables.gradle
-          fi
-
-          if [ -f "android/app/build.gradle" ]; then
-            sed -i 's/compileSdkVersion.*/compileSdkVersion 36/g' android/app/build.gradle
-            sed -i 's/targetSdkVersion.*/targetSdkVersion 36/g' android/app/build.gradle
-            sed -i 's/compileSdk =.*/compileSdk = 36/g' android/app/build.gradle
-            sed -i 's/targetSdk =.*/targetSdk = 36/g' android/app/build.gradle
-          fi
-          echo "SDK fixed cleanly to 36."
+          # Criar ou substituir o variables.gradle com os valores corretos para o SDK 36
+          cat << 'VAR_EOF' > android/variables.gradle
+          ext {
+              minSdkVersion = 22
+              compileSdkVersion = 36
+              targetSdkVersion = 36
+              androidxActivityVersion = '1.9.0'
+              androidxAppCompatVersion = '1.7.0'
+              androidxCoreVersion = '1.15.0'
+              androidxCustomtabsVersion = '1.3.0'
+              androidxCoreSplashscreenVersion = '1.0.1'
+              cordovaAndroidVersion = '10.1.1'
+          }
+          VAR_EOF
+          echo "Forced variables.gradle to SDK 36 successfully."
 
       - name: Grant execute permission for gradlew
         run: cd android && chmod +x gradlew
