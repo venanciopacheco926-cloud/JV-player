@@ -27,24 +27,20 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: Force SDK 36 Everywhere
+      - name: Clean and Fix SDK 36 Syntax in build.gradle
         run: |
-          # Atualizar no variables.gradle se existir
           if [ -f "android/variables.gradle" ]; then
             sed -i 's/compileSdkVersion = [0-9]*/compileSdkVersion = 36/g' android/variables.gradle
             sed -i 's/targetSdkVersion = [0-9]*/targetSdkVersion = 36/g' android/variables.gradle
-            sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 22/g' android/variables.gradle
           fi
 
-          # Atualizar diretamente no build.gradle do app
           if [ -f "android/app/build.gradle" ]; then
-            sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 36/g' android/app/build.gradle
-            sed -i 's/targetSdkVersion [0-9]*/targetSdkVersion 36/g' android/app/build.gradle
-            sed -i 's/compileSdk = [0-9]*/compileSdk = 36/g' android/app/build.gradle
-            sed -i 's/targetSdk = [0-9]*/targetSdk = 36/g' android/app/build.gradle
+            sed -i 's/compileSdkVersion.*/compileSdkVersion 36/g' android/app/build.gradle
+            sed -i 's/targetSdkVersion.*/targetSdkVersion 36/g' android/app/build.gradle
+            sed -i 's/compileSdk =.*/compileSdk = 36/g' android/app/build.gradle
+            sed -i 's/targetSdk =.*/targetSdk = 36/g' android/app/build.gradle
           fi
-          
-          echo "SDK configurations forced to 36."
+          echo "SDK fixed cleanly to 36."
 
       - name: Grant execute permission for gradlew
         run: cd android && chmod +x gradlew
