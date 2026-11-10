@@ -27,52 +27,33 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: Force minSdk 24 Directly in Project Files
+      - name: Force minSdk 24 AFTER Capacitor Sync
         run: |
-          # 1. Reescrever variables.gradle com minSdkVersion = 24
-          printf "ext {\n    minSdkVersion = 24\n    compileSdkVersion = 36\n    targetSdkVersion = 36\n}\n" > android/variables.gradle
+          # Modificar diretamente o variables.gradle gerado pelo Capacitor para 24
+          if [ -f "android/variables.gradle" ]; then
+              sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' android/variables.gradle
+          fi
 
-          # 2. Gerar o app/build.gradle já com minSdk 24 definitivo
-          cat << 'BUILD_EOF' > android/app/build.gradle
-          apply plugin: 'com.android.application'
+          # Garantir que qualquer menção a minSdk 22 no build.gradle passa a 24
+          python3 -c '
+          import glob
+          for path in glob.glob("android/**/build.gradle", recursive=True):
+              with open(path, "r", encoding="utf-8") as f:
+                  content = f.read()
+              content = content.replace("minSdk 22", "minSdk 24").replace("minSdkVersion 22", "minSdkVersion 24")
+              with open(path, "w", encoding="utf-8") as f:
+                  f.write(content)
+          print("Post-sync minSdk 24 injection completed.")
+          '
 
-          android {
-              namespace "com.jv.player"
-              compileSdk 36
+      - name: Grant execute permission for gradlew
+        run: cd android && chmod +x gradlew
 
-              defaultConfig {
-                  applicationId "com.jv.player"
-                  minSdk 24
-                  targetSdk 36
-                  versionCode 1
-                  versionName "1.0"
-                  testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-              }
+      - name: Build Debug APK
+        run: cd android && ./gradlew assembleDebug
 
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                      proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-                  }
-              }
-          }
-
-          dependencies {
-              implementation fileTree(include: ['*.jar'], dir: 'libs')
-              implementation "androidx.appcompat:appcompat:1.7.1"
-              implementation "androidx.core:core-ktx:1.17.0"
-              implementation project(':capacitor-android')
-              testImplementation 'junit:junit:4.13.2'
-              androidTestImplementation 'androidx.test.ext:junit:1.2.1'
-              androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
-          }
-
-          apply from: 'capacitor.build.gradle'
-          try {
-              apply from: '../capacitor-cordova-android-plugins/cordova.scripts.gradle'
-          } catch (Exception e) {
-              logger.info("cordova.scripts.gradle not found")
-          }
-          BUILD_EOF
-
-          echo "minSdk 24 successfully hardcoded everywhere."
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
