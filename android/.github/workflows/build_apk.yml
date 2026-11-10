@@ -27,9 +27,28 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: Force minSdk 24 and variables.gradle Override
+      - name: Force minSdk 24 in AndroidManifest.xml and Gradle
         run: |
-          # 1. Reescrever o variables.gradle com minSdkVersion = 24 estrito
+          # 1. Injetar ou atualizar o uses-sdk com minSdkVersion 24 diretamente no AndroidManifest.xml
+          python3 -c '
+          manifest_path = "android/app/src/main/AndroidManifest.xml"
+          with open(manifest_path, "r", encoding="utf-8") as f:
+              content = f.read()
+
+          if "<uses-sdk" in content:
+              import re
+              content = re.sub(r"minSdkVersion\s*=\s*\"\d+\"", "minSdkVersion=\"24\"", content)
+          else:
+              # Injetar o uses-sdk logo abaixo da tag <manifest ...>
+              content = content.replace("<manifest", "<manifest\n    xmlns:android=\"http://schemas.android.com/apk/res/android\"")
+              content = content.replace(">", ">\n    <uses-sdk android:minSdkVersion=\"24\" android:targetSdkVersion=\"36\" />")
+
+          with open(manifest_path, "w", encoding="utf-8") as f:
+              f.write(content)
+          print("AndroidManifest.xml updated to minSdk 24.")
+          '
+
+          # 2. Reforçar no variables.gradle
           cat << 'VAR_EOF' > android/variables.gradle
           ext {
               minSdkVersion = 24
@@ -53,7 +72,7 @@ jobs:
           }
           VAR_EOF
 
-          # 2. Reescrever o app/build.gradle com minSdk 24 direto
+          # 3. Reforçar no app/build.gradle
           cat << 'BUILD_EOF' > android/app/build.gradle
           apply plugin: 'com.android.application'
 
@@ -96,7 +115,7 @@ jobs:
           }
           BUILD_EOF
 
-          echo "Variables and build files locked at minSdk 24."
+          echo "All layers locked to minSdk 24."
 
       - name: Grant execute permission for gradlew
         run: cd android && chmod +x gradlew
