@@ -27,26 +27,51 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: Clean and Correct Gradle SDK 36 Injection
+      - name: Rewrite variables.gradle and Force SDK 36 Everywhere
         run: |
+          # 1. Reescrever o variables.gradle na raiz do android com compileSdkVersion e targetSdkVersion 36
+          cat << 'VAR_EOF' > android/variables.gradle
+          ext {
+              minSdkVersion = 22
+              compileSdkVersion = 36
+              targetSdkVersion = 36
+              androidxActivityVersion = '1.11.0'
+              androidxAppCompatVersion = '1.7.1'
+              androidxCoreVersion = '1.17.0'
+              androidxCustomtabsVersion = '1.3.0'
+              androidxCoreSplashscreenVersion = '1.2.0'
+              coreSplashScreenVersion = '1.2.0'
+              androidxCoordinatorLayoutVersion = '1.3.0'
+              androidxFragmentVersion = '1.8.9'
+              androidxWebkitVersion = '1.14.0'
+              androidxAnnotationVersion = '1.4.1'
+              androidxProfileinstallerVersion = '1.4.0'
+              junitVersion = '4.13.2'
+              androidxJunitVersion = '1.2.1'
+              androidxEspressoCoreVersion = '3.6.1'
+              cordovaAndroidVersion = '10.1.1'
+          }
+          VAR_EOF
+
+          # 2. Python para garantir que o build.gradle usa estritamente 36 e apaga qualquer referência a 33
           python3 -c '
+          import re
+
+          # Ajustar app/build.gradle
           path = "android/app/build.gradle"
           with open(path, "r", encoding="utf-8") as f:
-              lines = f.readlines()
+              content = f.read()
 
-          new_lines = []
-          for line in lines:
-              # Substituir qualquer linha antiga de compile/target SDK pelo formato limpo do Gradle
-              if "compileSdkVersion" in line or "compileSdk =" in line or "compileSdk=" in line:
-                  new_lines.append("    compileSdkVersion 36\n")
-              elif "targetSdkVersion" in line or "targetSdk =" in line or "targetSdk=" in line:
-                  new_lines.append("    targetSdkVersion 36\n")
-              else:
-                  new_lines.append(line)
+          content = re.sub(r"compileSdkVersion\s+.*", "compileSdkVersion 36", content)
+          content = re.sub(r"targetSdkVersion\s+.*", "targetSdkVersion 36", content)
+          content = re.sub(r"compileSdk\s*=.*", "compileSdk = 36", content)
+          content = re.sub(r"targetSdk\s*=.*", "targetSdk = 36", content)
+          content = content.replace("33", "36")
 
           with open(path, "w", encoding="utf-8") as f:
-              f.writelines(new_lines)
-          print("Clean SDK injection completed successfully.")
+              f.write(content)
+
+          print("Forced SDK 36 in variables.gradle and app/build.gradle.")
           '
 
       - name: Grant execute permission for gradlew
