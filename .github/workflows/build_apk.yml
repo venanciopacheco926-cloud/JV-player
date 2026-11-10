@@ -27,10 +27,36 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: Bulletproof SDK 36 Injection via Python One-Liner
+      - name: Safe SDK 36 Injection into android block
         run: |
-          python3 -c 'import re; p="android/app/build.gradle"; c=open(p,encoding="utf-8").read(); c=re.sub(r"compileSdkVersion\s+.*", "compileSdkVersion 36", c); c=re.sub(r"targetSdkVersion\s+.*", "targetSdkVersion 36", c); c=re.sub(r"compileSdk\s*=.*", "compileSdk = 36", c); c=re.sub(r"targetSdk\s*=.*", "compileSdk = 36", c); open(p,"w",encoding="utf-8").write(c)'
-          echo "SDK 36 successfully injected."
+          python3 -c '
+          path = "android/app/build.gradle"
+          with open(path, "r", encoding="utf-8") as f:
+              lines = f.readlines()
+
+          new_lines = []
+          in_android = False
+          sdk_injected = False
+
+          for line in lines:
+              new_lines.append(line)
+              if "android {" in line and not in_android:
+                  in_android = True
+              elif in_android and not sdk_injected:
+                  # Injetar logo após a abertura do bloco android
+                  new_lines.append("    compileSdkVersion 36\n")
+                  new_lines.append("    targetSdkVersion 36\n")
+                  sdk_injected = True
+
+          # Se já existirem propriedades antigas, podemos limpá-las ou mantê-las (o Gradle dá prioridade à primeira)
+          content = "".join(new_lines)
+          # Remover duplicados de compileSdkVersion / targetSdkVersion se houver
+          import re
+          # Deixar apenas o primeiro compileSdkVersion/targetSdkVersion se o re.sub for seguro, ou confiar na injecção limpa
+          with open(path, "w", encoding="utf-8") as f:
+              f.write(content)
+          print("Safe SDK injection completed.")
+          '
 
       - name: Grant execute permission for gradlew
         run: cd android && chmod +x gradlew
