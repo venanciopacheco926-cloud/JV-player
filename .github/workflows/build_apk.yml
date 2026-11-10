@@ -27,7 +27,7 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: Force Complete variables.gradle with SDK 36
+      - name: Force Complete variables.gradle with SDK 36 and Test Versions
         run: |
           cat << 'VAR_EOF' > android/variables.gradle
           ext {
@@ -45,10 +45,13 @@ jobs:
               androidxWebkitVersion = '1.12.0'
               androidxAnnotationVersion = '1.9.0'
               androidxProfileinstallerVersion = '1.4.0'
+              junitVersion = '4.13.2'
+              androidxJunitVersion = '1.2.1'
+              androidxEspressoCoreVersion = '3.6.1'
               cordovaAndroidVersion = '10.1.1'
           }
           VAR_EOF
-          echo "Variables.gradle fully updated with splash screen alias."
+          echo "Variables.gradle updated with junitVersion."
 
       - name: Grant execute permission for gradlew
         run: cd android && chmod +x gradlew
