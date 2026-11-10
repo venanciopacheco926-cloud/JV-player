@@ -27,9 +27,8 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: Force SDK 36 in Capacitor Variables
+      - name: Force Complete variables.gradle with SDK 36
         run: |
-          # Criar ou substituir o variables.gradle com os valores corretos para o SDK 36
           cat << 'VAR_EOF' > android/variables.gradle
           ext {
               minSdkVersion = 22
@@ -40,10 +39,15 @@ jobs:
               androidxCoreVersion = '1.15.0'
               androidxCustomtabsVersion = '1.3.0'
               androidxCoreSplashscreenVersion = '1.0.1'
+              androidxCoordinatorLayoutVersion = '1.3.0'
+              androidxFragmentVersion = '1.8.0'
+              androidxWebkitVersion = '1.12.0'
+              androidxAnnotationVersion = '1.9.0'
+              androidxProfileinstallerVersion = '1.4.0'
               cordovaAndroidVersion = '10.1.1'
           }
           VAR_EOF
-          echo "Forced variables.gradle to SDK 36 successfully."
+          echo "Variables.gradle fully updated."
 
       - name: Grant execute permission for gradlew
         run: cd android && chmod +x gradlew
