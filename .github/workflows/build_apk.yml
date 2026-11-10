@@ -27,13 +27,16 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: Update SDK versions to 36
+      - name: Force SDK 36 after Capacitor Sync
         run: |
           cd android/app
           sed -i 's/compileSdkVersion 33/compileSdkVersion 36/g' build.gradle
           sed -i 's/targetSdkVersion 33/targetSdkVersion 36/g' build.gradle
           sed -i 's/compileSdk = 33/compileSdk = 36/g' build.gradle
           sed -i 's/targetSdk = 33/targetSdk = 36/g' build.gradle
+          # Also handle any 34 defaults if present
+          sed -i 's/compileSdkVersion 34/compileSdkVersion 36/g' build.gradle
+          sed -i 's/targetSdkVersion 34/targetSdkVersion 36/g' build.gradle
           cd ../..
 
       - name: Grant execute permission for gradlew
