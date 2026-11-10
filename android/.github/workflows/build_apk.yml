@@ -27,9 +27,8 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: Inject tools:overrideLibrary to Bypass Cordova SDK Check
+      - name: Force minSdk 24 and Override Cordova in AndroidManifest.xml
         run: |
-          # Forçar minSdk 24 e injetar o override para ignorar o bloqueio do cordova
           python3 -c '
           import re
 
@@ -37,23 +36,27 @@ jobs:
           with open(manifest_path, "r", encoding="utf-8") as f:
               content = f.read()
 
-          # Garantir namespace do tools
+          # 1. Garantir o namespace do tools
           if "xmlns:tools" not in content:
               content = content.replace("<manifest", "<manifest xmlns:tools=\"http://schemas.android.com/tools\"")
 
-          # Injetar <uses-sdk tools:overrideLibrary="org.apache.cordova" /> se nao existir
-          if "tools:overrideLibrary" not in content:
-              if "<application" in content:
-                  content = content.replace("<application", "<uses-sdk tools:overrideLibrary=\"org.apache.cordova\" />\n    <application")
-              else:
-                  content = content.replace("</manifest>", "    <uses-sdk tools:overrideLibrary=\"org.apache.cordova\" />\n</manifest>")
+          # 2. Se já existir uses-sdk, atualizar ou injetar o override e o minSdkVersion 24
+          if "<uses-sdk" in content:
+              content = re.sub(r"minSdkVersion\s*=\s*\"\d+\"", "minSdkVersion=\"24\"", content)
+              if "tools:overrideLibrary" not in content:
+                  content = content.replace("<uses-sdk", "<uses-sdk tools:overrideLibrary=\"org.apache.cordova\"")
+          else:
+              # Injetar o uses-sdk com override logo abaixo da tag <manifest>
+              replacement = "<manifest>\n    <uses-sdk android:minSdkVersion=\"24\" android:targetSdkVersion=\"36\" tools:overrideLibrary=\"org.apache.cordova\" />"
+              content = re.sub(r"<manifest[^>]*>", replacement, content, count=1)
 
           with open(manifest_path, "w", encoding="utf-8") as f:
               f.write(content)
-          print("Cordova override injected successfully.")
+
+          print("AndroidManifest.xml patched successfully with minSdk 24 and Cordova override.")
           '
 
-          # Assegurar variables.gradle a 24
+          # Garantir também o variables.gradle a 24
           cat << 'VAR_EOF' > android/variables.gradle
           ext {
               minSdkVersion = 24
