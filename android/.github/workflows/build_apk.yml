@@ -1,0 +1,87 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Dependencies and Capacitor
+        run: |
+          npm install
+          npx cap sync android
+
+      - name: Generate Clean build.gradle with minSdk 24 and compileSdk 36
+        run: |
+          cat << 'BUILD_EOF' > android/app/build.gradle
+          apply plugin: 'com.android.application'
+
+          android {
+              namespace "com.jv.player"
+              compileSdk 36
+
+              defaultConfig {
+                  applicationId "com.jv.player"
+                  minSdk 24
+                  targetSdk 36
+                  versionCode 1
+                  versionName "1.0"
+                  testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+                  }
+              }
+          }
+
+          dependencies {
+              implementation fileTree(include: ['*.jar'], dir: 'libs')
+              implementation "androidx.appcompat:appcompat:1.7.1"
+              implementation "androidx.core:core-ktx:1.17.0"
+              implementation project(':capacitor-android')
+              testImplementation 'junit:junit:4.13.2'
+              androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+              androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+          }
+
+          apply from: 'capacitor.build.gradle'
+          try {
+              apply from: '../capacitor-cordova-android-plugins/cordova.scripts.gradle'
+          } catch (Exception e) {
+              logger.info("cordova.scripts.gradle not found")
+          }
+          BUILD_EOF
+
+          printf "ext {\n    minSdkVersion = 24\n    compileSdkVersion = 36\n    targetSdkVersion = 36\n}\n" > android/variables.gradle
+          echo "minSdk upgraded to 24 successfully."
+
+      - name: Grant execute permission for gradlew
+        run: cd android && chmod +x gradlew
+
+      - name: Build Debug APK
+        run: cd android && ./gradlew assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
