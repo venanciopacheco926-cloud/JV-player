@@ -27,7 +27,7 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: Generate Clean and Bulletproof app/build.gradle
+      - name: Generate Clean and Bulletproof app/build.gradle with minSdk 24
         run: |
           cat << 'BUILD_EOF' > android/app/build.gradle
           apply plugin: 'com.android.application'
@@ -38,7 +38,7 @@ jobs:
 
               defaultConfig {
                   applicationId "com.jv.player"
-                  minSdk 22
+                  minSdk 24
                   targetSdk 36
                   versionCode 1
                   versionName "1.0"
@@ -71,10 +71,9 @@ jobs:
           }
           BUILD_EOF
 
-          # Garantir também o variables.gradle limpo
-          printf "ext {\n    minSdkVersion = 22\n    compileSdkVersion = 36\n    targetSdkVersion = 36\n}\n" > android/variables.gradle
+          printf "ext {\n    minSdkVersion = 24\n    compileSdkVersion = 36\n    targetSdkVersion = 36\n}\n" > android/variables.gradle
 
-          echo "Clean build.gradle and variables.gradle generated successfully."
+          echo "Clean build.gradle and variables.gradle generated successfully with minSdk 24."
 
       - name: Grant execute permission for gradlew
         run: cd android && chmod +x gradlew
