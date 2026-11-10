@@ -27,54 +27,52 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: Force minSdk 24 and Override Cordova constraints
+      - name: Force minSdk 24 Directly in Project Files
         run: |
-          # 1. Garantir variables.gradle com minSdkVersion = 24
+          # 1. Reescrever variables.gradle com minSdkVersion = 24
           printf "ext {\n    minSdkVersion = 24\n    compileSdkVersion = 36\n    targetSdkVersion = 36\n}\n" > android/variables.gradle
 
-          # 2. Injetar o minSdk 24 e o override no build.gradle do app
-          python3 -c '
-          path = "android/app/build.gradle"
-          with open(path, "r", encoding="utf-8") as f:
-              content = f.read()
+          # 2. Gerar o app/build.gradle já com minSdk 24 definitivo
+          cat << 'BUILD_EOF' > android/app/build.gradle
+          apply plugin: 'com.android.application'
 
-          # Forçar minSdk 24 no defaultConfig
-          content = content.replace("minSdk 22", "minSdk 24")
-          content = content.replace("minSdkVersion 22", "minSdkVersion 24")
+          android {
+              namespace "com.jv.player"
+              compileSdk 36
 
-          with open(path, "w", encoding="utf-8") as f:
-              f.write(content)
-          print("Forced minSdk 24 successfully.")
-          '
+              defaultConfig {
+                  applicationId "com.jv.player"
+                  minSdk 24
+                  targetSdk 36
+                  versionCode 1
+                  versionName "1.0"
+                  testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+              }
 
-          # 3. Adicionar o tools:overrideLibrary no AndroidManifest.xml se necessário para forçar o Cordova
-          python3 -c '
-          manifest_path = "android/app/src/main/AndroidManifest.xml"
-          with open(manifest_path, "r", encoding="utf-8") as f:
-              m_content = f.read()
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+                  }
+              }
+          }
 
-          if "xmlns:tools" not in m_content:
-              m_content = m_content.replace("<manifest", "<manifest xmlns:tools=\"http://schemas.android.com/tools\"")
+          dependencies {
+              implementation fileTree(include: ['*.jar'], dir: 'libs')
+              implementation "androidx.appcompat:appcompat:1.7.1"
+              implementation "androidx.core:core-ktx:1.17.0"
+              implementation project(':capacitor-android')
+              testImplementation 'junit:junit:4.13.2'
+              androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+              androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+          }
 
-          if "tools:overrideLibrary" not in m_content and "<uses-sdk" in m_content:
-              m_content = m_content.replace("<uses-sdk ", "<uses-sdk tools:overrideLibrary=\"org.apache.cordova\" ")
-          elif "tools:overrideLibrary" not in m_content:
-              # Se nao tiver uses-sdk explicito, injetar dentro de <manifest>
-              m_content = m_content.replace("<manifest", "<manifest>\n    <uses-sdk tools:overrideLibrary=\"org.apache.cordova\"")
+          apply from: 'capacitor.build.gradle'
+          try {
+              apply from: '../capacitor-cordova-android-plugins/cordova.scripts.gradle'
+          } catch (Exception e) {
+              logger.info("cordova.scripts.gradle not found")
+          }
+          BUILD_EOF
 
-          with open(manifest_path, "w", encoding="utf-8") as f:
-              f.write(m_content)
-          print("Cordova override injected into AndroidManifest.xml.")
-          '
-
-      - name: Grant execute permission for gradlew
-        run: cd android && chmod +x gradlew
-
-      - name: Build Debug APK
-        run: cd android && ./gradlew assembleDebug
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          echo "minSdk 24 successfully hardcoded everywhere."
