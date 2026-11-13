@@ -10,8 +10,10 @@ body{background:#000;color:#f0f0f5;display:flex;flex-direction:column;height:100
 .band{position:relative;width:100%;flex:none}
 .band img{display:block;width:100%}
 #logo img{height:24vh;object-fit:contain}
-#lyrics-container{flex:1;min-height:0;overflow-y:auto;padding:14px 12px;text-align:center;scroll-behavior:smooth}
-.lyric-line{font-size:1.05rem;color:#5a5a78;margin:12px 0;transition:all .2s;line-height:1.4}
+#stage{flex:1;min-height:0;display:flex;flex-direction:column;background:linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.68)),url(img/bg.jpg) center/cover}
+#viz{display:block;flex:none;width:100%;height:9vh}
+#lyrics-container{flex:1;min-height:0;overflow-y:auto;padding:10px 12px;text-align:center;scroll-behavior:smooth}
+.lyric-line{font-size:1.05rem;color:#c4c4dc;margin:12px 0;transition:all .2s;line-height:1.4;text-shadow:0 1px 6px #000}
 .lyric-line.active{color:#fff;font-size:1.3rem;font-weight:700;text-shadow:0 0 12px #ff2fa0,0 0 22px #22d3ee}
 #info{position:absolute;left:40.5%;width:33%;top:27%;height:62%;display:flex;flex-direction:column;justify-content:space-around;font-size:3.7vw}
 #info div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -42,7 +44,7 @@ input[type=file]{display:none}
 </head>
 <body>
 <div id="logo" class="band"><img src="img/logo.jpg" alt="JV Music 2.0"></div>
-<div id="lyrics-container"><p class="lyric-line active">Toque em Biblioteca para escolher uma música</p></div>
+<div id="stage"><canvas id="viz"></canvas><div id="lyrics-container"><p class="lyric-line active">Toque em Biblioteca para escolher uma música</p></div></div>
 <div id="card" class="band"><img src="img/card.jpg" alt=""><div id="info"><div id="t">Nome da Música</div><div id="a">Artista desconhecido</div><div id="b">Álbum desconhecido</div></div></div>
 <div id="prog"><span id="cur">00:00</span><input class="nr" id="seek" type="range" min="0" max="1000" value="0"><span id="dur">00:00</span></div>
 <div id="ctrl" class="band"><img src="img/controls.jpg" alt=""><svg id="pp" viewBox="0 0 24 24" fill="#e8fbff"></svg><div id="pl">Reproduzir</div></div>
@@ -176,6 +178,42 @@ audio.addEventListener('timeupdate', () => {
     if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   }
 });
+
+/* Sound bars que reagem à música */
+let ac = null, an = null, fd = null;
+function initViz() {
+  if (!ac) {
+    try {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      const src = ac.createMediaElementSource(audio);
+      an = ac.createAnalyser(); an.fftSize = 128; an.smoothingTimeConstant = .75;
+      src.connect(an); an.connect(ac.destination);
+      fd = new Uint8Array(an.frequencyBinCount);
+    } catch (e) { ac = null; an = null; }
+  }
+  if (ac && ac.state === 'suspended') ac.resume();
+}
+audio.addEventListener('play', initViz);
+const cv = $('viz'), cx = cv.getContext('2d'), N = 32, lv = new Array(N).fill(0);
+function drawViz(t) {
+  requestAnimationFrame(drawViz);
+  const w = cv.width = cv.clientWidth, h = cv.height = cv.clientHeight;
+  cx.clearRect(0, 0, w, h);
+  const playing = !audio.paused;
+  if (an && playing) an.getByteFrequencyData(fd);
+  const g = cx.createLinearGradient(0, 0, w, 0);
+  g.addColorStop(0, '#22d3ee'); g.addColorStop(.5, '#a855f7'); g.addColorStop(1, '#ff2fa0');
+  cx.fillStyle = g; cx.shadowBlur = 8; cx.shadowColor = '#a855f7';
+  const gap = w / N, bw = gap * .66, bh = 6;
+  for (let i = 0; i < N; i++) {
+    let v = 0;
+    if (playing) v = an ? fd[Math.floor(i * 56 / N)] / 255 : .3 + .5 * Math.abs(Math.sin(t / 300 + i));
+    lv[i] = Math.max(v, lv[i] - .04);
+    const blocks = Math.max(1, Math.round(lv[i] * h / bh));
+    for (let b = 0; b < blocks; b++) cx.fillRect(i * gap + (gap - bw) / 2, h - (b + 1) * bh, bw, bh - 2);
+  }
+}
+requestAnimationFrame(drawViz);
 </script>
 </body>
 </html>
