@@ -33,11 +33,11 @@ jobs:
           apply plugin: 'com.android.application'
 
           android {
-              namespace "com.jv.player"
+              namespace "com.jv.musicplayer"
               compileSdk 36
 
               defaultConfig {
-                  applicationId "com.jv.player"
+                  applicationId "com.jv.musicplayer"
                   minSdk 24
                   targetSdk 36
                   versionCode 1
