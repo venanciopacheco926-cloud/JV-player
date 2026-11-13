@@ -1,278 +1,181 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JV Music Player Pro</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-        body { background: #0d0d12; color: #f0f0f5; display: flex; flex-direction: column; height: 100vh; padding: 16px; }
-        .header { text-align: center; padding: 10px 0; border-bottom: 1px solid #1f1f2e; }
-        .header h1 { font-size: 1.1rem; color: #a855f7; letter-spacing: 1px; }
-        #track-title { font-size: 0.85rem; color: #888899; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        #lyrics-container { flex: 1; overflow-y: auto; padding: 30px 10px; text-align: center; scroll-behavior: smooth; }
-        .lyric-line { font-size: 1.1rem; color: #555566; margin: 14px 0; transition: all 0.2s ease; line-height: 1.4; }
-        .lyric-line.active { color: #ffffff; font-size: 1.35rem; font-weight: 700; text-shadow: 0 0 12px rgba(168, 85, 247, 0.6); transform: scale(1.02); }
-        .controls-area { background: #161622; padding: 14px; border-radius: 14px; border: 1px solid #252538; }
-        audio { width: 100%; height: 36px; margin-bottom: 10px; border-radius: 8px; }
-        .file-buttons { display: flex; gap: 8px; }
-        .btn-file { flex: 1; background: #252538; color: #e0e0e0; padding: 10px 4px; border-radius: 8px; text-align: center; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid #35354f; }
-        .btn-file:active { background: #a855f7; color: #fff; }
-        input[type="file"] { display: none; }
-
-        #library { display: none; position: fixed; inset: 0; background: #0d0d12; flex-direction: column; padding: 16px; z-index: 10; }
-        #library.open { display: flex; }
-        .lib-top { display: flex; gap: 8px; margin-bottom: 10px; }
-        #lib-search { flex: 1; background: #161622; color: #f0f0f5; border: 1px solid #35354f; border-radius: 8px; padding: 10px; font-size: 0.9rem; }
-        #lib-close { background: #252538; color: #e0e0e0; border: 1px solid #35354f; border-radius: 8px; padding: 0 14px; font-size: 0.9rem; }
-        #lib-count { font-size: 0.75rem; color: #888899; margin-bottom: 8px; }
-        #lib-list { flex: 1; overflow-y: auto; }
-        .song { padding: 10px 6px; border-bottom: 1px solid #1f1f2e; }
-        .song:active { background: #252538; }
-        .song-title { font-size: 0.95rem; color: #f0f0f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .song-sub { font-size: 0.75rem; color: #888899; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .lib-msg { padding: 20px 6px; font-size: 0.85rem; color: #bbbbcc; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JV Music 2.0</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif;-webkit-tap-highlight-color:transparent}
+body{background:#000;color:#f0f0f5;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.band{position:relative;width:100%;flex:none}
+.band img{display:block;width:100%}
+#logo img{height:24vh;object-fit:contain}
+#lyrics-container{flex:1;min-height:0;overflow-y:auto;padding:14px 12px;text-align:center;scroll-behavior:smooth}
+.lyric-line{font-size:1.05rem;color:#5a5a78;margin:12px 0;transition:all .2s;line-height:1.4}
+.lyric-line.active{color:#fff;font-size:1.3rem;font-weight:700;text-shadow:0 0 12px #ff2fa0,0 0 22px #22d3ee}
+#info{position:absolute;left:40.5%;width:33%;top:27%;height:62%;display:flex;flex-direction:column;justify-content:space-around;font-size:3.7vw}
+#info div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#t{font-weight:700;color:#fff}#a{color:#8fa8ff}#b{color:#6fd3ee}
+#prog{display:flex;align-items:center;gap:8px;padding:4px 12px;font-size:3.6vw;font-weight:600}
+#cur{color:#22d3ee}#dur{color:#ff2fa0}
+.nr{-webkit-appearance:none;appearance:none;flex:1;width:100%;height:6px;border-radius:6px;background:linear-gradient(90deg,#22d3ee,#ff2fa0);outline:none}
+.nr::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#7fe9ff;box-shadow:0 0 8px #22d3ee,0 0 16px #22d3ee}
+.hs{position:absolute;background:none;border:0;border-radius:22%}
+.hs:active{background:rgba(255,255,255,.15)}
+.hsw{position:absolute;display:flex;align-items:center}
+#pp{position:absolute;left:50.3%;top:25.6%;width:13%;transform:translate(-50%,-50%);pointer-events:none;filter:drop-shadow(0 0 6px #22d3ee)}
+#pl{position:absolute;left:50.2%;top:57%;transform:translate(-50%,-50%);color:#d9b8ff;font-size:3.6vw;font-weight:600;pointer-events:none}
+input[type=file]{display:none}
+#library{display:none;position:fixed;inset:0;background:#05050a;flex-direction:column;padding:16px;z-index:10}
+#library.open{display:flex}
+.lib-top{display:flex;gap:8px;margin-bottom:10px}
+#lib-search{flex:1;background:#12121c;color:#f0f0f5;border:1px solid #22d3ee;border-radius:8px;padding:10px;font-size:.9rem}
+#lib-close{background:#12121c;color:#ff2fa0;border:1px solid #ff2fa0;border-radius:8px;padding:0 14px}
+#lib-count{font-size:.75rem;color:#8a8aa8;margin-bottom:8px}
+#lib-list{flex:1;overflow-y:auto}
+.song{padding:10px 6px;border-bottom:1px solid #1f1f2e}
+.song:active{background:#251a3a}
+.song-title{font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.song-sub{font-size:.75rem;color:#8a8aa8;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-msg{padding:20px 6px;font-size:.85rem;color:#bbbbcc;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+</style>
 </head>
 <body>
-    <div class="header">
-        <h1>JV MUSIC PLAYER</h1>
-        <div id="track-title">Selecione uma faixa</div>
-    </div>
+<div id="logo" class="band"><img src="img/logo.jpg" alt="JV Music 2.0"></div>
+<div id="lyrics-container"><p class="lyric-line active">Toque em Biblioteca para escolher uma música</p></div>
+<div id="card" class="band"><img src="img/card.jpg" alt=""><div id="info"><div id="t">Nome da Música</div><div id="a">Artista desconhecido</div><div id="b">Álbum desconhecido</div></div></div>
+<div id="prog"><span id="cur">00:00</span><input class="nr" id="seek" type="range" min="0" max="1000" value="0"><span id="dur">00:00</span></div>
+<div id="ctrl" class="band"><img src="img/controls.jpg" alt=""><svg id="pp" viewBox="0 0 24 24" fill="#e8fbff"></svg><div id="pl">Reproduzir</div></div>
+<audio id="audio"></audio>
+<input type="file" id="mp3-file" accept="audio/*">
+<input type="file" id="lrc-file" accept=".lrc,text/plain">
+<div id="library">
+  <div class="lib-top"><input id="lib-search" type="search" placeholder="Buscar música ou artista"><button id="lib-close">Fechar</button></div>
+  <div id="lib-count"></div><div id="lib-list"></div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const audio = $('audio'), lyricsBox = $('lyrics-container'), panel = $('library'), libList = $('lib-list'), libCount = $('lib-count'), libSearch = $('lib-search'), seek = $('seek');
+let lyricsData = [], lastActive = -1, library = [], queue = [], qi = -1;
 
-    <div id="lyrics-container">
-        <p class="lyric-line active">Carregue o Áudio e o .LRC para começar</p>
-    </div>
+/* Botões: áreas da imagem (x0,x1,y0,y1 na arte original 941 px; faixa começa em y=1090, altura 410) */
+const HS = {lib:[22,192,1118,1295], prev:[203,360,1125,1295], play:[368,578,1090,1340], next:[585,745,1125,1295],
+  lrc:[755,925,1118,1295], aud:[30,225,1335,1495], minus:[330,375,1395,1455], plus:[630,680,1395,1455], volp:[715,915,1335,1495]};
+const ACT = {lib:openLibrary, prev:()=>step(-1), next:()=>step(1), play:toggle, lrc:()=>$('lrc-file').click(),
+  aud:()=>$('mp3-file').click(), minus:()=>setVol(-.1), plus:()=>setVol(.1), volp:()=>setVol(.1)};
+const place = (el, [x0,x1,y0,y1]) => { el.style.left = x0/9.41+'%'; el.style.width = (x1-x0)/9.41+'%'; el.style.top = (y0-1090)/4.1+'%'; el.style.height = (y1-y0)/4.1+'%'; };
+for (const k in ACT) { const b = document.createElement('button'); b.className = 'hs'; place(b, HS[k]); b.onclick = ACT[k]; $('ctrl').appendChild(b); }
+const vw = document.createElement('div'); vw.className = 'hsw'; place(vw, [385,622,1395,1455]);
+vw.innerHTML = '<input class="nr" id="vol" type="range" min="0" max="1" step="0.01" value="1">'; $('ctrl').appendChild(vw);
+$('vol').oninput = e => audio.volume = +e.target.value;
+function setVol(d) { audio.volume = Math.min(1, Math.max(0, audio.volume + d)); $('vol').value = audio.volume; }
 
-    <div class="controls-area">
-        <audio id="audio" controls></audio>
-        <div class="file-buttons">
-            <div class="btn-file" id="btn-library">📚 Biblioteca</div>
-            <label class="btn-file">
-                🎵 Áudio
-                <input type="file" id="mp3-file" accept="audio/*">
-            </label>
-            <label class="btn-file">
-                📝 Legenda .LRC
-                <input type="file" id="lrc-file" accept=".lrc,text/plain">
-            </label>
-        </div>
-    </div>
+const PAUSE = '<path d="M7 4h4v16H7zM13 4h4v16h-4z"/>', PLAY = '<path d="M8 4l13 8-13 8z"/>';
+function upd() { $('pp').innerHTML = audio.paused ? PLAY : PAUSE; $('pl').textContent = audio.paused ? 'Reproduzir' : 'Pausar'; }
+function toggle() { if (!audio.src) return openLibrary(); audio.paused ? audio.play().catch(()=>{}) : audio.pause(); }
+audio.addEventListener('play', upd); audio.addEventListener('pause', upd); upd();
 
-    <div id="library">
-        <div class="lib-top">
-            <input id="lib-search" type="search" placeholder="Buscar música ou artista">
-            <button id="lib-close">Fechar</button>
-        </div>
-        <div id="lib-count"></div>
-        <div id="lib-list"></div>
-    </div>
+const fmt = t => isFinite(t) ? String(Math.floor(t/60)).padStart(2,'0') + ':' + String(Math.floor(t%60)).padStart(2,'0') : '00:00';
+audio.addEventListener('loadedmetadata', () => $('dur').textContent = fmt(audio.duration));
+seek.oninput = () => { if (audio.duration) audio.currentTime = seek.value/1000*audio.duration; };
+function step(d) { if (!queue.length) return; qi = (qi + d + queue.length) % queue.length; playItem(queue[qi]); }
+audio.addEventListener('ended', () => step(1));
+function setInfo(t, a, b) { $('t').textContent = t; $('a').textContent = a || 'Artista desconhecido'; $('b').textContent = b || 'Álbum desconhecido'; }
 
-    <script>
-        const audio = document.getElementById('audio');
-        const lyricsContainer = document.getElementById('lyrics-container');
-        const trackTitle = document.getElementById('track-title');
-        const panel = document.getElementById('library');
-        const libList = document.getElementById('lib-list');
-        const libCount = document.getElementById('lib-count');
-        const libSearch = document.getElementById('lib-search');
-        let lyricsData = [];
-        let lastActiveIndex = -1;
-        let library = [];
+/* Arquivo avulso */
+$('mp3-file').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  queue = []; resetLyrics(); audio.src = URL.createObjectURL(f);
+  setInfo(f.name.replace(/\.[^/.]+$/, '')); audio.play();
+});
+$('lrc-file').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader(); r.onload = ev => parseLRC(ev.target.result); r.readAsText(f);
+});
 
-        /* ---------- Escolher um arquivo (como antes) ---------- */
-        document.getElementById('mp3-file').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            resetLyrics();
-            audio.src = URL.createObjectURL(file);
-            trackTitle.textContent = file.name.replace(/\.[^/.]+$/, "");
-            audio.play();
-        });
+/* Biblioteca */
+const getPlugin = () => { const p = (window.Capacitor && window.Capacitor.Plugins) || {}; return p.CapacitorMediaStore || p.MediaStore || null; };
+function showMsg(text) { libList.innerHTML = ''; const p = document.createElement('div'); p.className = 'lib-msg'; p.textContent = text; libList.appendChild(p); }
+function extractList(res) {
+  if (Array.isArray(res)) return res; if (!res) return [];
+  for (const k of ['medias','media','files','items','audio','data']) if (Array.isArray(res[k])) return res[k];
+  return Object.values(res).find(Array.isArray) || [];
+}
+const itemPath = it => it.uri || it.contentUri || it.path || it.filePath || it.data || '';
+const itemTitle = it => it.title || it.name || it.displayName || 'Sem título';
+async function openLibrary() {
+  panel.classList.add('open'); libCount.textContent = ''; showMsg('Carregando músicas...');
+  const MS = getPlugin();
+  if (!MS) { showMsg('Plugin de músicas não encontrado.\nPlugins: ' + Object.keys((window.Capacitor && window.Capacitor.Plugins) || {}).join(', ')); return; }
+  try {
+    await MS.requestPermissions({ types: ['audio'] });
+    const res = await MS.getMediasByType({ mediaType: 'audio', sortBy: 'TITLE', includeExternal: true });
+    library = extractList(res);
+    if (!library.length) { showMsg('Nenhuma música encontrada. Resposta:\n' + JSON.stringify(res).slice(0, 400)); return; }
+    renderLibrary();
+  } catch (err) { showMsg('Erro ao ler as músicas:\n' + (err && err.message ? err.message : JSON.stringify(err))); }
+}
+function renderLibrary() {
+  const q = libSearch.value.trim().toLowerCase();
+  const found = library.filter(it => !q || (itemTitle(it) + ' ' + (it.artist || '')).toLowerCase().includes(q));
+  libCount.textContent = found.length + ' de ' + library.length + ' músicas';
+  libList.innerHTML = '';
+  found.slice(0, 500).forEach((it, i) => {
+    const row = document.createElement('div'); row.className = 'song';
+    const t = document.createElement('div'); t.className = 'song-title'; t.textContent = itemTitle(it);
+    const s = document.createElement('div'); s.className = 'song-sub'; s.textContent = [it.artist, it.album].filter(Boolean).join(' - ');
+    row.append(t, s);
+    row.addEventListener('click', () => { queue = found; qi = i; playItem(it); });
+    libList.appendChild(row);
+  });
+}
+function playItem(it) {
+  const path = itemPath(it);
+  if (!path) { panel.classList.add('open'); showMsg('Sem caminho para esta música:\n' + JSON.stringify(it).slice(0, 400)); return; }
+  resetLyrics();
+  audio.src = /^https?:/.test(path) ? path : window.Capacitor.convertFileSrc(path);
+  setInfo(itemTitle(it), it.artist, it.album);
+  panel.classList.remove('open');
+  audio.play().catch(() => {});
+  tryAutoLrc(path);
+}
+audio.addEventListener('error', () => { if (audio.src && !audio.src.startsWith('blob:')) $('t').textContent = 'Erro ao tocar'; });
+function tryAutoLrc(path) {
+  if (!/\.[^/.\\]+$/.test(path)) return;
+  fetch(window.Capacitor.convertFileSrc(path.replace(/\.[^/.\\]+$/, '.lrc')))
+    .then(r => r.ok ? r.text() : Promise.reject()).then(parseLRC).catch(() => {});
+}
+libSearch.addEventListener('input', renderLibrary);
+$('lib-close').addEventListener('click', () => panel.classList.remove('open'));
 
-        document.getElementById('lrc-file').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(event) { parseLRC(event.target.result); };
-            reader.readAsText(file);
-        });
-
-        /* ---------- Biblioteca do aparelho ---------- */
-        function getPlugin() {
-            const plugins = (window.Capacitor && window.Capacitor.Plugins) || {};
-            return plugins.CapacitorMediaStore || plugins.MediaStore || null;
-        }
-
-        function showMsg(text) {
-            libList.innerHTML = '';
-            const p = document.createElement('div');
-            p.className = 'lib-msg';
-            p.textContent = text;
-            libList.appendChild(p);
-        }
-
-        function extractList(res) {
-            if (Array.isArray(res)) return res;
-            if (!res) return [];
-            for (const k of ['medias', 'media', 'files', 'items', 'audio', 'data']) {
-                if (Array.isArray(res[k])) return res[k];
-            }
-            return Object.values(res).find(Array.isArray) || [];
-        }
-
-        function itemPath(it) {
-            return it.uri || it.contentUri || it.path || it.filePath || it.data || '';
-        }
-
-        function itemTitle(it) {
-            return it.title || it.name || it.displayName || 'Sem título';
-        }
-
-        async function openLibrary() {
-            panel.classList.add('open');
-            libCount.textContent = '';
-            showMsg('Carregando músicas...');
-            const MS = getPlugin();
-            if (!MS) {
-                const names = Object.keys((window.Capacitor && window.Capacitor.Plugins) || {}).join(', ');
-                showMsg('Plugin de músicas não encontrado.\nPlugins disponíveis: ' + (names || 'nenhum'));
-                return;
-            }
-            try {
-                await MS.requestPermissions({ types: ['audio'] });
-                const res = await MS.getMediasByType({ mediaType: 'audio', sortBy: 'TITLE', includeExternal: true });
-                library = extractList(res);
-                if (!library.length) {
-                    showMsg('Nenhuma música encontrada. Resposta do plugin:\n' + JSON.stringify(res).slice(0, 400));
-                    return;
-                }
-                renderLibrary();
-            } catch (err) {
-                showMsg('Erro ao ler as músicas:\n' + (err && err.message ? err.message : JSON.stringify(err)));
-            }
-        }
-
-        function renderLibrary() {
-            const q = libSearch.value.trim().toLowerCase();
-            const found = library.filter(it =>
-                !q || (itemTitle(it) + ' ' + (it.artist || '')).toLowerCase().includes(q));
-            libCount.textContent = found.length + ' de ' + library.length + ' músicas';
-            libList.innerHTML = '';
-            found.slice(0, 500).forEach(it => {
-                const row = document.createElement('div');
-                row.className = 'song';
-                const t = document.createElement('div');
-                t.className = 'song-title';
-                t.textContent = itemTitle(it);
-                const s = document.createElement('div');
-                s.className = 'song-sub';
-                s.textContent = [it.artist, it.album].filter(Boolean).join(' - ');
-                row.appendChild(t);
-                row.appendChild(s);
-                row.addEventListener('click', () => playItem(it));
-                libList.appendChild(row);
-            });
-        }
-
-        function playItem(it) {
-            const path = itemPath(it);
-            if (!path) {
-                showMsg('Não encontrei o caminho desta música. Dados do item:\n' + JSON.stringify(it).slice(0, 400));
-                return;
-            }
-            resetLyrics();
-            const src = /^https?:/.test(path) ? path : window.Capacitor.convertFileSrc(path);
-            audio.src = src;
-            trackTitle.textContent = itemTitle(it);
-            panel.classList.remove('open');
-            audio.play().catch(() => {});
-            tryAutoLrc(path);
-        }
-
-        audio.addEventListener('error', () => {
-            if (audio.src && !audio.src.startsWith('blob:')) {
-                trackTitle.textContent = 'Erro ao tocar: ' + decodeURIComponent(audio.src).slice(-60);
-            }
-        });
-
-        function tryAutoLrc(path) {
-            if (!/\.[^/.\\]+$/.test(path)) return;
-            const lrcPath = path.replace(/\.[^/.\\]+$/, '.lrc');
-            fetch(window.Capacitor.convertFileSrc(lrcPath))
-                .then(r => r.ok ? r.text() : Promise.reject())
-                .then(parseLRC)
-                .catch(() => {});
-        }
-
-        document.getElementById('btn-library').addEventListener('click', openLibrary);
-        document.getElementById('lib-close').addEventListener('click', () => panel.classList.remove('open'));
-        libSearch.addEventListener('input', renderLibrary);
-
-        /* ---------- Letras ---------- */
-        function resetLyrics() {
-            lyricsData = [];
-            lastActiveIndex = -1;
-            lyricsContainer.innerHTML = '<p class="lyric-line active">Carregue o .LRC para ver a letra</p>';
-        }
-
-        function parseLRC(lrcText) {
-            const lines = lrcText.split(/\r?\n/);
-            lyricsData = [];
-            lastActiveIndex = -1;
-            const timeReg = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
-
-            lines.forEach(line => {
-                const match = timeReg.exec(line);
-                if (match) {
-                    const minutes = parseInt(match[1], 10);
-                    const seconds = parseInt(match[2], 10);
-                    const msPart = match[3];
-                    const milliseconds = parseInt(msPart, 10) / (msPart.length === 3 ? 1000 : 100);
-                    const totalSeconds = (minutes * 60) + seconds + milliseconds;
-                    const text = line.replace(timeReg, '').trim();
-                    if (text) {
-                        lyricsData.push({ time: totalSeconds, text: text });
-                    }
-                }
-            });
-
-            lyricsData.sort((a, b) => a.time - b.time);
-            renderLyrics();
-        }
-
-        function renderLyrics() {
-            if (lyricsData.length === 0) {
-                lyricsContainer.innerHTML = '<p class="lyric-line active">Nenhuma linha sincronizada encontrada</p>';
-                return;
-            }
-            lyricsContainer.innerHTML = lyricsData.map((item, index) =>
-                `<p id="line-${index}" class="lyric-line">${item.text}</p>`
-            ).join('');
-        }
-
-        audio.addEventListener('timeupdate', () => {
-            const currentTime = audio.currentTime;
-            let activeIndex = -1;
-
-            for (let i = 0; i < lyricsData.length; i++) {
-                if (lyricsData[i].time <= currentTime) {
-                    activeIndex = i;
-                } else {
-                    break;
-                }
-            }
-
-            if (activeIndex !== -1 && activeIndex !== lastActiveIndex) {
-                lastActiveIndex = activeIndex;
-                document.querySelectorAll('.lyric-line').forEach(el => el.classList.remove('active'));
-                const activeLine = document.getElementById(`line-${activeIndex}`);
-                if (activeLine) {
-                    activeLine.classList.add('active');
-                    activeLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }
-        });
-    </script>
+/* Letras */
+function resetLyrics() { lyricsData = []; lastActive = -1; lyricsBox.innerHTML = '<p class="lyric-line active">Carregue o .LRC para ver a letra</p>'; }
+function parseLRC(text) {
+  lyricsData = []; lastActive = -1;
+  const re = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
+  text.split(/\r?\n/).forEach(line => {
+    const m = re.exec(line); if (!m) return;
+    const time = +m[1]*60 + +m[2] + parseInt(m[3], 10) / (m[3].length === 3 ? 1000 : 100);
+    const t = line.replace(re, '').trim(); if (t) lyricsData.push({ time, text: t });
+  });
+  lyricsData.sort((a, b) => a.time - b.time);
+  lyricsBox.innerHTML = lyricsData.length
+    ? lyricsData.map((l, i) => `<p id="line-${i}" class="lyric-line">${l.text.replace(/</g, '&lt;')}</p>`).join('')
+    : '<p class="lyric-line active">Nenhuma linha sincronizada encontrada</p>';
+}
+audio.addEventListener('timeupdate', () => {
+  const c = audio.currentTime;
+  $('cur').textContent = fmt(c);
+  if (audio.duration) seek.value = c / audio.duration * 1000;
+  let a = -1;
+  for (let i = 0; i < lyricsData.length && lyricsData[i].time <= c; i++) a = i;
+  if (a !== -1 && a !== lastActive) {
+    lastActive = a;
+    document.querySelectorAll('.lyric-line').forEach(el => el.classList.remove('active'));
+    const el = $('line-' + a);
+    if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  }
+});
+</script>
 </body>
 </html>
