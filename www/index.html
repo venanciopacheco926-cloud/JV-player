@@ -15,8 +15,6 @@ body{background:#000;color:#f0f0f5;display:flex;flex-direction:column;height:100
 #tab-player{background:linear-gradient(rgba(0,0,0,var(--dim)),rgba(0,0,0,calc(var(--dim) + .18))),var(--bg) center 20%/cover}
 #viz{display:block;flex:none;width:100%;height:9vh}
 #lyrics-container{flex:1;min-height:0;overflow-y:auto;padding:10px 12px;text-align:center;scroll-behavior:smooth}
-.lyric-line{font-size:1.05rem;color:#c4c4dc;margin:12px 0;transition:all .2s;line-height:1.4;text-shadow:0 1px 6px #000}
-.lyric-line.active{color:#fff;font-size:1.3rem;font-weight:700;text-shadow:0 0 12px #ff2fa0,0 0 22px #22d3ee}
 #info{position:absolute;left:40.5%;width:33%;top:27%;height:62%;display:flex;flex-direction:column;justify-content:space-around;font-size:3.7vw}
 #info div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #t{font-weight:700;color:#fff}#a{color:#8fa8ff}#b{color:#6fd3ee}
@@ -59,6 +57,20 @@ input[type=color]{width:56px;height:34px;border:1px solid #35354f;border-radius:
 .tb{flex:1;padding:8px 0 7px;text-align:center;font-size:.72rem;color:#8a8aa8;border:0;border-top:2px solid transparent;background:none}
 .tb .ic{display:block;font-size:1.25rem}
 .tb.on{color:#fff;border-top-color:#22d3ee;text-shadow:0 0 8px #22d3ee}
+:root{--lf:sans-serif;--ls:1.05rem;--la:#fff;--li:#c4c4dc;--lg:#ff2fa0;--lgb:12px;--lm:12px;--lal:center;--lw:700;--lst:0px;--ml:auto;--mr:auto;--p:0%;--bass:0}
+.lyric-line{font-family:var(--lf);font-size:var(--ls);color:var(--li);margin:var(--lm) 0;line-height:1.4;text-align:var(--lal);text-shadow:0 1px 6px #000;transition:all .25s}
+.lyric-line.active{color:var(--la);font-size:calc(var(--ls) * 1.25);font-weight:var(--lw);text-shadow:0 0 var(--lgb) var(--lg),0 0 calc(var(--lgb) * 2) var(--lg);-webkit-text-stroke:var(--lst) var(--lg)}
+[data-anim=soft] .lyric-line.active{animation:lsoft .5s ease}
+[data-anim=zoom] .lyric-line.active{animation:lzoom .45s cubic-bezier(.3,1.6,.5,1)}
+[data-anim=slide] .lyric-line.active{animation:lslide .45s ease}
+[data-anim=neon] .lyric-line.active{animation:lneon 1.4s infinite}
+[data-anim=bass] .lyric-line.active{transform:scale(calc(1 + var(--bass) * .18));transition:transform .06s}
+[data-anim=karaoke] .lyric-line.active{width:fit-content;max-width:100%;margin-left:var(--ml);margin-right:var(--mr);background:linear-gradient(90deg,var(--la) var(--p),var(--li) var(--p));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;-webkit-text-stroke:0;filter:drop-shadow(0 0 calc(var(--lgb) / 2) var(--lg))}
+@keyframes lsoft{from{opacity:.3;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+@keyframes lzoom{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes lslide{from{transform:translateY(28px);opacity:0}to{transform:none;opacity:1}}
+@keyframes lneon{0%,100%{opacity:1}45%{opacity:.55}50%{opacity:1}55%{opacity:.7}}
+#lypv{height:24vh;flex:none;overflow:hidden;border-radius:12px;border:1px solid #35354f;margin-bottom:8px;display:flex;flex-direction:column;justify-content:center;padding:0 14px;background:linear-gradient(rgba(0,0,0,var(--dim)),rgba(0,0,0,calc(var(--dim) + .18))),var(--bg) center/cover}
 </style>
 </head>
 <body>
@@ -79,7 +91,7 @@ input[type=color]{width:56px;height:34px;border:1px solid #35354f;border-radius:
   <div class="lib-top"><input id="lib-search" type="search" placeholder="Buscar música ou artista"><button id="lib-file">Arquivo</button><button id="lib-close">Fechar</button></div>
   <div id="lib-count"></div><div id="lib-list"></div>
 </div>
-<div id="tab-lyrics" class="tab"><div style="padding:16px"><b style="color:#22d3ee">Letras .LRC</b><div class="lib-msg">Em breve: letras com estilos personalizados e botão de gravação.</div></div></div>
+<div id="tab-lyrics" class="tab" style="padding:12px 16px"><div class="lib-top"><b style="flex:1;align-self:center;color:#22d3ee">Letras .LRC</b></div><div id="lypv"></div><div id="ly-body" style="flex:1;overflow-y:auto"></div></div>
 <div id="tabs"><button class="tb on" data-t="player"><span class="ic">🎵</span>Player</button><button class="tb" data-t="visual"><span class="ic">✨</span>Visual</button><button class="tb" data-t="lyrics"><span class="ic">📝</span>Letras</button></div>
 <script>
 const $ = id => document.getElementById(id);
@@ -259,6 +271,7 @@ function render(c) {
 }
 function loop(t) {
   requestAnimationFrame(loop);
+  lyrLoop(t);
   const playing = !audio.paused;
   if (an && playing) an.getByteFrequencyData(fd);
   for (let j = 0; j < 64; j++) {
@@ -314,8 +327,72 @@ function showTab(n) {
   $('tab-lyrics').classList.toggle('on', n === 'lyrics');
   document.querySelectorAll('.tb').forEach(b => b.classList.toggle('on', b.dataset.t === n));
   if (n === 'visual') { buildStudio(); initViz(); }
+  if (n === 'lyrics') buildLyr();
 }
 document.querySelectorAll('.tb').forEach(b => b.onclick = () => showTab(b.dataset.t));
+
+/* Letras: fonte, cor e animação */
+const LD = {font:'sans-serif', size:1.05, lh:12, align:'center', w:'700', pal:'rosa', ca:'#ffffff', ci:'#c4c4dc', cg:'#ff2fa0', glow:12, stroke:0, anim:'soft'};
+let L = Object.assign({}, LD);
+try { Object.assign(L, JSON.parse(localStorage.getItem('jvlyr') || '{}')); } catch (e) {}
+const saveL = () => { try { localStorage.setItem('jvlyr', JSON.stringify(L)); } catch (e) {} };
+const LPAL = {rosa:['#ffffff','#c4c4dc','#ff2fa0'], ciano:['#ffffff','#b8c7d9','#22d3ee'], dourado:['#fff3b0','#d9c9a0','#ff9f1a'], verde:['#eaffd0','#b8d9b0','#19d46b'], roxo:['#f3e8ff','#cbb8e8','#a855f7']};
+const FONTS = {'sans-serif':'Normal','sans-serif-light':'Fina','sans-serif-black':'Pesada','sans-serif-condensed':'Condensada','serif':'Serifa','cursive':'Cursiva','monospace':'Mono','casual':'Casual'};
+const ANIMS = {none:'Nenhuma', soft:'Suave', zoom:'Zoom', slide:'Deslizar', neon:'Neon piscando', karaoke:'Karaokê', bass:'Pulsar no grave'};
+function applyLyr() {
+  const r = document.documentElement, s = r.style, c = L.pal === 'custom' ? [L.ca, L.ci, L.cg] : (LPAL[L.pal] || LPAL.rosa);
+  s.setProperty('--lf', L.font); s.setProperty('--ls', L.size + 'rem'); s.setProperty('--la', c[0]); s.setProperty('--li', c[1]); s.setProperty('--lg', c[2]);
+  s.setProperty('--lgb', L.glow + 'px'); s.setProperty('--lm', L.lh + 'px'); s.setProperty('--lal', L.align); s.setProperty('--lw', L.w); s.setProperty('--lst', L.stroke + 'px');
+  s.setProperty('--ml', L.align === 'left' ? '0' : 'auto'); s.setProperty('--mr', L.align === 'right' ? '0' : 'auto');
+  r.dataset.anim = L.anim;
+}
+const lypv = $('lypv'); let pvI = -1;
+['Cada batida é uma história', 'Cante comigo essa canção', 'Até o amanhecer chegar'].forEach(t => { const p = document.createElement('p'); p.className = 'lyric-line'; p.textContent = t; lypv.appendChild(p); });
+function lyrLoop(t) {
+  if (L.anim === 'karaoke' && lastActive >= 0 && lyricsData[lastActive]) {
+    const a = lyricsData[lastActive], nx = lyricsData[lastActive + 1], d = Math.max(.5, (nx ? nx.time : a.time + 4) - a.time);
+    lyricsBox.style.setProperty('--p', Math.min(100, Math.max(0, (audio.currentTime - a.time) / d * 100)) + '%');
+  }
+  if (L.anim === 'bass') lyricsBox.style.setProperty('--bass', (lv[0] + lv[1] + lv[2] + lv[3]) / 4);
+  if ($('tab-lyrics').classList.contains('on')) {
+    const i = Math.floor(t / 2600) % 3;
+    if (i !== pvI) { pvI = i; [...lypv.children].forEach((e, j) => e.classList.toggle('active', j === i)); }
+    lypv.style.setProperty('--p', (t % 2600) / 26 + '%'); lypv.style.setProperty('--bass', .5 + .5 * Math.sin(t / 180));
+  }
+}
+function buildLyr() {
+  const body = $('ly-body'), y = body.scrollTop; body.innerHTML = '';
+  const add = (title, node) => { const d = document.createElement('div'); d.className = 'row'; d.innerHTML = '<label><span>' + title + '</span><span></span></label>'; d.appendChild(node); body.appendChild(d); return d; };
+  const chips = (title, items, key, fam) => {
+    const c = document.createElement('div'); c.className = 'chips';
+    for (const k in items) {
+      const b = document.createElement('div'); b.className = 'chip' + (String(L[key]) === k ? ' on' : ''); b.textContent = items[k];
+      if (fam) b.style.fontFamily = k;
+      b.onclick = () => { L[key] = k; saveL(); applyLyr(); buildLyr(); }; c.appendChild(b);
+    }
+    add(title, c);
+  };
+  chips('Fonte', FONTS, 'font', true);
+  chips('Peso', {400:'Normal', 700:'Negrito', 900:'Extra'}, 'w');
+  chips('Alinhamento', {left:'Esquerda', center:'Centro', right:'Direita'}, 'align');
+  chips('Cores', {rosa:'Rosa', ciano:'Ciano', dourado:'Dourado', verde:'Verde', roxo:'Roxo', custom:'Minhas cores'}, 'pal');
+  if (L.pal === 'custom') {
+    const d = document.createElement('div');
+    ['ca', 'ci', 'cg'].forEach(k => { const i = document.createElement('input'); i.type = 'color'; i.value = L[k]; i.oninput = () => { L[k] = i.value; saveL(); applyLyr(); }; d.appendChild(i); });
+    add('Linha ativa, inativas e brilho', d);
+  }
+  chips('Animação', ANIMS, 'anim');
+  [['size','Tamanho',.8,2,.05], ['lh','Espaço entre linhas',4,30,1], ['glow','Brilho',0,30,1], ['stroke','Contorno',0,3,.5]].forEach(([k, l, mn, mx, s]) => {
+    const i = document.createElement('input'); i.type = 'range'; i.className = 'nr'; i.min = mn; i.max = mx; i.step = s; i.value = L[k];
+    const val = add(l, i).querySelector('label span:last-child'); val.textContent = L[k];
+    i.oninput = () => { L[k] = +i.value; val.textContent = L[k]; saveL(); applyLyr(); };
+  });
+  const r = document.createElement('div'); r.className = 'chips';
+  const b = document.createElement('div'); b.className = 'chip'; b.textContent = 'Restaurar padrão';
+  b.onclick = () => { L = Object.assign({}, LD); saveL(); applyLyr(); buildLyr(); }; r.appendChild(b); add('Padrões', r);
+  body.scrollTop = y;
+}
+applyLyr();
 </script>
 </body>
 </html>
