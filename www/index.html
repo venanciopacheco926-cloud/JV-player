@@ -9,9 +9,10 @@
 body{background:#000;color:#f0f0f5;display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .band{position:relative;width:100%;flex:none}
 .band img{display:block;width:100%}
-#logo img{height:24vh;object-fit:contain}
+#logo img{height:24vh;object-fit:contain;mix-blend-mode:screen}
 :root{--dim:.5;--bg:url("img/bg.jpg")}
-#stage{flex:1;min-height:0;display:flex;flex-direction:column;background:linear-gradient(rgba(0,0,0,var(--dim)),rgba(0,0,0,calc(var(--dim) + .18))),var(--bg) center/cover}
+#stage{flex:1;min-height:0;display:flex;flex-direction:column}
+#tab-player{background:linear-gradient(rgba(0,0,0,var(--dim)),rgba(0,0,0,calc(var(--dim) + .18))),var(--bg) center 20%/cover}
 #viz{display:block;flex:none;width:100%;height:9vh}
 #lyrics-container{flex:1;min-height:0;overflow-y:auto;padding:10px 12px;text-align:center;scroll-behavior:smooth}
 .lyric-line{font-size:1.05rem;color:#c4c4dc;margin:12px 0;transition:all .2s;line-height:1.4;text-shadow:0 1px 6px #000}
