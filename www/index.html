@@ -393,6 +393,28 @@ function buildLyr() {
   body.scrollTop = y;
 }
 applyLyr();
+
+/* Notificação e segundo plano */
+const msp = () => (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MediaSession) || null;
+const msCall = (name, arg) => { const M = msp(); if (!M || !M[name]) return; try { Promise.resolve(M[name](arg)).catch(() => {}); } catch (e) {} };
+function msUpdate() {
+  msCall('setMetadata', { title: $('t').textContent, artist: $('a').textContent, album: $('b').textContent });
+  msCall('setPlaybackState', { playbackState: audio.paused ? 'paused' : 'playing' });
+}
+function msInit() {
+  const M = msp(); if (!M) return;
+  const h = (action, fn) => { try { Promise.resolve(M.setActionHandler({ action }, fn)).catch(() => {}); } catch (e) {} };
+  h('play', () => audio.play()); h('pause', () => audio.pause());
+  h('nexttrack', () => step(1)); h('previoustrack', () => step(-1));
+  h('seekto', d => { if (d && d.seekTime != null) audio.currentTime = d.seekTime; });
+}
+['play', 'pause', 'loadedmetadata'].forEach(ev => audio.addEventListener(ev, msUpdate));
+let msT = 0;
+audio.addEventListener('timeupdate', () => {
+  if (Date.now() - msT < 1000 || !audio.duration) return; msT = Date.now();
+  msCall('setPositionState', { duration: audio.duration, position: audio.currentTime, playbackRate: 1 });
+});
+msInit();
 </script>
 </body>
 </html>
