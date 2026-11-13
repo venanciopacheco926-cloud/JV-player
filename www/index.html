@@ -16,9 +16,22 @@
         .controls-area { background: #161622; padding: 14px; border-radius: 14px; border: 1px solid #252538; }
         audio { width: 100%; height: 36px; margin-bottom: 10px; border-radius: 8px; }
         .file-buttons { display: flex; gap: 8px; }
-        .btn-file { flex: 1; background: #252538; color: #e0e0e0; padding: 10px; border-radius: 8px; text-align: center; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid #35354f; }
+        .btn-file { flex: 1; background: #252538; color: #e0e0e0; padding: 10px 4px; border-radius: 8px; text-align: center; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid #35354f; }
         .btn-file:active { background: #a855f7; color: #fff; }
         input[type="file"] { display: none; }
+
+        #library { display: none; position: fixed; inset: 0; background: #0d0d12; flex-direction: column; padding: 16px; z-index: 10; }
+        #library.open { display: flex; }
+        .lib-top { display: flex; gap: 8px; margin-bottom: 10px; }
+        #lib-search { flex: 1; background: #161622; color: #f0f0f5; border: 1px solid #35354f; border-radius: 8px; padding: 10px; font-size: 0.9rem; }
+        #lib-close { background: #252538; color: #e0e0e0; border: 1px solid #35354f; border-radius: 8px; padding: 0 14px; font-size: 0.9rem; }
+        #lib-count { font-size: 0.75rem; color: #888899; margin-bottom: 8px; }
+        #lib-list { flex: 1; overflow-y: auto; }
+        .song { padding: 10px 6px; border-bottom: 1px solid #1f1f2e; }
+        .song:active { background: #252538; }
+        .song-title { font-size: 0.95rem; color: #f0f0f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .song-sub { font-size: 0.75rem; color: #888899; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lib-msg { padding: 20px 6px; font-size: 0.85rem; color: #bbbbcc; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
     </style>
 </head>
 <body>
@@ -34,6 +47,7 @@
     <div class="controls-area">
         <audio id="audio" controls></audio>
         <div class="file-buttons">
+            <div class="btn-file" id="btn-library">📚 Biblioteca</div>
             <label class="btn-file">
                 🎵 Áudio
                 <input type="file" id="mp3-file" accept="audio/*">
@@ -45,16 +59,32 @@
         </div>
     </div>
 
+    <div id="library">
+        <div class="lib-top">
+            <input id="lib-search" type="search" placeholder="Buscar música ou artista">
+            <button id="lib-close">Fechar</button>
+        </div>
+        <div id="lib-count"></div>
+        <div id="lib-list"></div>
+    </div>
+
     <script>
         const audio = document.getElementById('audio');
         const lyricsContainer = document.getElementById('lyrics-container');
         const trackTitle = document.getElementById('track-title');
+        const panel = document.getElementById('library');
+        const libList = document.getElementById('lib-list');
+        const libCount = document.getElementById('lib-count');
+        const libSearch = document.getElementById('lib-search');
         let lyricsData = [];
         let lastActiveIndex = -1;
+        let library = [];
 
+        /* ---------- Escolher um arquivo (como antes) ---------- */
         document.getElementById('mp3-file').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
+            resetLyrics();
             audio.src = URL.createObjectURL(file);
             trackTitle.textContent = file.name.replace(/\.[^/.]+$/, "");
             audio.play();
@@ -64,11 +94,127 @@
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = function(event) {
-                parseLRC(event.target.result);
-            };
+            reader.onload = function(event) { parseLRC(event.target.result); };
             reader.readAsText(file);
         });
+
+        /* ---------- Biblioteca do aparelho ---------- */
+        function getPlugin() {
+            const plugins = (window.Capacitor && window.Capacitor.Plugins) || {};
+            return plugins.CapacitorMediaStore || plugins.MediaStore || null;
+        }
+
+        function showMsg(text) {
+            libList.innerHTML = '';
+            const p = document.createElement('div');
+            p.className = 'lib-msg';
+            p.textContent = text;
+            libList.appendChild(p);
+        }
+
+        function extractList(res) {
+            if (Array.isArray(res)) return res;
+            if (!res) return [];
+            for (const k of ['medias', 'media', 'files', 'items', 'audio', 'data']) {
+                if (Array.isArray(res[k])) return res[k];
+            }
+            return Object.values(res).find(Array.isArray) || [];
+        }
+
+        function itemPath(it) {
+            return it.uri || it.contentUri || it.path || it.filePath || it.data || '';
+        }
+
+        function itemTitle(it) {
+            return it.title || it.name || it.displayName || 'Sem título';
+        }
+
+        async function openLibrary() {
+            panel.classList.add('open');
+            libCount.textContent = '';
+            showMsg('Carregando músicas...');
+            const MS = getPlugin();
+            if (!MS) {
+                const names = Object.keys((window.Capacitor && window.Capacitor.Plugins) || {}).join(', ');
+                showMsg('Plugin de músicas não encontrado.\nPlugins disponíveis: ' + (names || 'nenhum'));
+                return;
+            }
+            try {
+                await MS.requestPermissions({ types: ['audio'] });
+                const res = await MS.getMediasByType({ mediaType: 'audio', sortBy: 'TITLE', includeExternal: true });
+                library = extractList(res);
+                if (!library.length) {
+                    showMsg('Nenhuma música encontrada. Resposta do plugin:\n' + JSON.stringify(res).slice(0, 400));
+                    return;
+                }
+                renderLibrary();
+            } catch (err) {
+                showMsg('Erro ao ler as músicas:\n' + (err && err.message ? err.message : JSON.stringify(err)));
+            }
+        }
+
+        function renderLibrary() {
+            const q = libSearch.value.trim().toLowerCase();
+            const found = library.filter(it =>
+                !q || (itemTitle(it) + ' ' + (it.artist || '')).toLowerCase().includes(q));
+            libCount.textContent = found.length + ' de ' + library.length + ' músicas';
+            libList.innerHTML = '';
+            found.slice(0, 500).forEach(it => {
+                const row = document.createElement('div');
+                row.className = 'song';
+                const t = document.createElement('div');
+                t.className = 'song-title';
+                t.textContent = itemTitle(it);
+                const s = document.createElement('div');
+                s.className = 'song-sub';
+                s.textContent = [it.artist, it.album].filter(Boolean).join(' - ');
+                row.appendChild(t);
+                row.appendChild(s);
+                row.addEventListener('click', () => playItem(it));
+                libList.appendChild(row);
+            });
+        }
+
+        function playItem(it) {
+            const path = itemPath(it);
+            if (!path) {
+                showMsg('Não encontrei o caminho desta música. Dados do item:\n' + JSON.stringify(it).slice(0, 400));
+                return;
+            }
+            resetLyrics();
+            const src = /^https?:/.test(path) ? path : window.Capacitor.convertFileSrc(path);
+            audio.src = src;
+            trackTitle.textContent = itemTitle(it);
+            panel.classList.remove('open');
+            audio.play().catch(() => {});
+            tryAutoLrc(path);
+        }
+
+        audio.addEventListener('error', () => {
+            if (audio.src && !audio.src.startsWith('blob:')) {
+                trackTitle.textContent = 'Erro ao tocar: ' + decodeURIComponent(audio.src).slice(-60);
+            }
+        });
+
+        function tryAutoLrc(path) {
+            if (!/\.[^/.\\]+$/.test(path)) return;
+            const lrcPath = path.replace(/\.[^/.\\]+$/, '.lrc');
+            fetch(window.Capacitor.convertFileSrc(lrcPath))
+                .then(r => r.ok ? r.text() : Promise.reject())
+                .then(parseLRC)
+                .catch(() => {});
+        }
+
+        document.getElementById('btn-library').addEventListener('click', openLibrary);
+        document.getElementById('lib-close').addEventListener('click', () => panel.classList.remove('open'));
+        libSearch.addEventListener('input', renderLibrary);
+
+        /* ---------- Letras ---------- */
+        function resetLyrics() {
+            lyricsData = [];
+            lastActiveIndex = -1;
+            lyricsContainer.innerHTML = '<p class="lyric-line active">Carregue o .LRC para ver a letra</p>';
+        }
 
         function parseLRC(lrcText) {
             const lines = lrcText.split(/\r?\n/);
@@ -100,7 +246,7 @@
                 lyricsContainer.innerHTML = '<p class="lyric-line active">Nenhuma linha sincronizada encontrada</p>';
                 return;
             }
-            lyricsContainer.innerHTML = lyricsData.map((item, index) => 
+            lyricsContainer.innerHTML = lyricsData.map((item, index) =>
                 `<p id="line-${index}" class="lyric-line">${item.text}</p>`
             ).join('');
         }
