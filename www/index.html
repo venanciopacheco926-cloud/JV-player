@@ -10,7 +10,8 @@ body{background:#000;color:#f0f0f5;display:flex;flex-direction:column;height:100
 .band{position:relative;width:100%;flex:none}
 .band img{display:block;width:100%}
 #logo img{height:24vh;object-fit:contain}
-#stage{flex:1;min-height:0;display:flex;flex-direction:column;background:linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.68)),url(img/bg.jpg) center/cover}
+:root{--dim:.5;--bg:url("img/bg.jpg")}
+#stage{flex:1;min-height:0;display:flex;flex-direction:column;background:linear-gradient(rgba(0,0,0,var(--dim)),rgba(0,0,0,calc(var(--dim) + .18))),var(--bg) center/cover}
 #viz{display:block;flex:none;width:100%;height:9vh}
 #lyrics-container{flex:1;min-height:0;overflow-y:auto;padding:10px 12px;text-align:center;scroll-behavior:smooth}
 .lyric-line{font-size:1.05rem;color:#c4c4dc;margin:12px 0;transition:all .2s;line-height:1.4;text-shadow:0 1px 6px #000}
@@ -32,7 +33,7 @@ input[type=file]{display:none}
 #library.open{display:flex}
 .lib-top{display:flex;gap:8px;margin-bottom:10px}
 #lib-search{flex:1;background:#12121c;color:#f0f0f5;border:1px solid #22d3ee;border-radius:8px;padding:10px;font-size:.9rem}
-#lib-close{background:#12121c;color:#ff2fa0;border:1px solid #ff2fa0;border-radius:8px;padding:0 14px}
+#lib-close,#lib-file{background:#12121c;color:#ff2fa0;border:1px solid #ff2fa0;border-radius:8px;padding:0 14px}
 #lib-count{font-size:.75rem;color:#8a8aa8;margin-bottom:8px}
 #lib-list{flex:1;overflow-y:auto}
 .song{padding:10px 6px;border-bottom:1px solid #1f1f2e}
@@ -40,21 +41,45 @@ input[type=file]{display:none}
 .song-title{font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .song-sub{font-size:.75rem;color:#8a8aa8;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lib-msg{padding:20px 6px;font-size:.85rem;color:#bbbbcc;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+#studio{display:none;flex:1;min-height:0;flex-direction:column;padding:12px 16px}
+#studio.open{display:flex}
+#st-title{flex:1;align-self:center;color:#22d3ee}
+#pvbox{height:22vh;flex:none;border-radius:12px;overflow:hidden;margin-bottom:8px;border:1px solid #35354f;background:linear-gradient(rgba(0,0,0,var(--dim)),rgba(0,0,0,calc(var(--dim) + .18))),var(--bg) center/cover}
+#pv{display:block;width:100%;height:100%}
+#st-body{flex:1;overflow-y:auto}
+.row{margin:14px 0}.row label{display:flex;justify-content:space-between;font-size:.8rem;color:#bbbbcc;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:8px 13px;border:1px solid #35354f;border-radius:18px;font-size:.8rem;background:#12121c;color:#ddd}
+.chip.on{border-color:#22d3ee;color:#fff;box-shadow:0 0 8px #22d3ee}
+.chip:active{background:#251a3a}
+input[type=color]{width:56px;height:34px;border:1px solid #35354f;border-radius:8px;background:#12121c;margin-right:10px}
+.tab{display:none;flex:1;min-height:0;flex-direction:column}.tab.on{display:flex}
+#tabs{display:flex;flex:none;background:#0b0b14;border-top:1px solid #35354f}
+.tb{flex:1;padding:8px 0 7px;text-align:center;font-size:.72rem;color:#8a8aa8;border:0;border-top:2px solid transparent;background:none}
+.tb .ic{display:block;font-size:1.25rem}
+.tb.on{color:#fff;border-top-color:#22d3ee;text-shadow:0 0 8px #22d3ee}
 </style>
 </head>
 <body>
+<div id="tab-player" class="tab on">
 <div id="logo" class="band"><img src="img/logo.jpg" alt="JV Music 2.0"></div>
 <div id="stage"><canvas id="viz"></canvas><div id="lyrics-container"><p class="lyric-line active">Toque em Biblioteca para escolher uma música</p></div></div>
 <div id="card" class="band"><img src="img/card.jpg" alt=""><div id="info"><div id="t">Nome da Música</div><div id="a">Artista desconhecido</div><div id="b">Álbum desconhecido</div></div></div>
 <div id="prog"><span id="cur">00:00</span><input class="nr" id="seek" type="range" min="0" max="1000" value="0"><span id="dur">00:00</span></div>
 <div id="ctrl" class="band"><img src="img/controls.jpg" alt=""><svg id="pp" viewBox="0 0 24 24" fill="#e8fbff"></svg><div id="pl">Reproduzir</div></div>
+</div>
 <audio id="audio"></audio>
 <input type="file" id="mp3-file" accept="audio/*">
 <input type="file" id="lrc-file" accept=".lrc,text/plain">
+<input type="file" id="bg-file" accept="image/*">
+<div id="studio"><div class="lib-top"><b id="st-title">Estúdio visual</b></div>
+<div id="pvbox"><canvas id="pv"></canvas></div><div id="st-body"></div></div>
 <div id="library">
-  <div class="lib-top"><input id="lib-search" type="search" placeholder="Buscar música ou artista"><button id="lib-close">Fechar</button></div>
+  <div class="lib-top"><input id="lib-search" type="search" placeholder="Buscar música ou artista"><button id="lib-file">Arquivo</button><button id="lib-close">Fechar</button></div>
   <div id="lib-count"></div><div id="lib-list"></div>
 </div>
+<div id="tab-lyrics" class="tab"><div style="padding:16px"><b style="color:#22d3ee">Letras .LRC</b><div class="lib-msg">Em breve: letras com estilos personalizados e botão de gravação.</div></div></div>
+<div id="tabs"><button class="tb on" data-t="player"><span class="ic">🎵</span>Player</button><button class="tb" data-t="visual"><span class="ic">✨</span>Visual</button><button class="tb" data-t="lyrics"><span class="ic">📝</span>Letras</button></div>
 <script>
 const $ = id => document.getElementById(id);
 const audio = $('audio'), lyricsBox = $('lyrics-container'), panel = $('library'), libList = $('lib-list'), libCount = $('lib-count'), libSearch = $('lib-search'), seek = $('seek');
@@ -64,7 +89,7 @@ let lyricsData = [], lastActive = -1, library = [], queue = [], qi = -1;
 const HS = {lib:[22,192,1118,1295], prev:[203,360,1125,1295], play:[368,578,1090,1340], next:[585,745,1125,1295],
   lrc:[755,925,1118,1295], aud:[30,225,1335,1495], minus:[330,375,1395,1455], plus:[630,680,1395,1455], volp:[715,915,1335,1495]};
 const ACT = {lib:openLibrary, prev:()=>step(-1), next:()=>step(1), play:toggle, lrc:()=>$('lrc-file').click(),
-  aud:()=>$('mp3-file').click(), minus:()=>setVol(-.1), plus:()=>setVol(.1), volp:()=>setVol(.1)};
+  aud:()=>openStudio(), minus:()=>setVol(-.1), plus:()=>setVol(.1), volp:()=>setVol(.1)};
 const place = (el, [x0,x1,y0,y1]) => { el.style.left = x0/9.41+'%'; el.style.width = (x1-x0)/9.41+'%'; el.style.top = (y0-1090)/4.1+'%'; el.style.height = (y1-y0)/4.1+'%'; };
 for (const k in ACT) { const b = document.createElement('button'); b.className = 'hs'; place(b, HS[k]); b.onclick = ACT[k]; $('ctrl').appendChild(b); }
 const vw = document.createElement('div'); vw.className = 'hsw'; place(vw, [385,622,1395,1455]);
@@ -194,26 +219,102 @@ function initViz() {
   if (ac && ac.state === 'suspended') ac.resume();
 }
 audio.addEventListener('play', initViz);
-const cv = $('viz'), cx = cv.getContext('2d'), N = 32, lv = new Array(N).fill(0);
-function drawViz(t) {
-  requestAnimationFrame(drawViz);
-  const w = cv.width = cv.clientWidth, h = cv.height = cv.clientHeight;
+const cv = $('viz'), pv = $('pv'), studio = $('studio'), sb = $('st-body'), lv = new Array(64).fill(0);
+const DEF = {style:'blocks', pal:'neon', c1:'#22d3ee', c2:'#ff2fa0', gain:1, fall:.04, n:32, thick:.66, glow:8, dim:.5, bg:''};
+let cfg = Object.assign({}, DEF);
+try { Object.assign(cfg, JSON.parse(localStorage.getItem('jvviz') || '{}')); } catch (e) {}
+const save = () => { try { localStorage.setItem('jvviz', JSON.stringify(cfg)); } catch (e) {} };
+const PALS = {neon:['#22d3ee','#a855f7','#ff2fa0'], fogo:['#ffe14d','#ff7a18','#ff2d2d'], verde:['#a3ff12','#19d46b','#00b3a4'], arco:['#ff2d2d','#ffd23f','#3bff7a','#22d3ee','#a855f7']};
+const STYLES = {blocks:'Blocos', mirror:'Espelhadas', wave:'Onda', fill:'Preenchido', circle:'Circular', dots:'Pontos'};
+function applyBg() { const r = document.documentElement.style; r.setProperty('--bg', 'url("' + (cfg.bg || 'img/bg.jpg') + '")'); r.setProperty('--dim', cfg.dim); }
+
+function render(c) {
+  const cx = c.getContext('2d'), w = c.width = c.clientWidth, h = c.height = c.clientHeight, n = cfg.n;
   cx.clearRect(0, 0, w, h);
-  const playing = !audio.paused;
-  if (an && playing) an.getByteFrequencyData(fd);
+  const st = cfg.pal === 'custom' ? [cfg.c1, cfg.c2] : (PALS[cfg.pal] || PALS.neon);
   const g = cx.createLinearGradient(0, 0, w, 0);
-  g.addColorStop(0, '#22d3ee'); g.addColorStop(.5, '#a855f7'); g.addColorStop(1, '#ff2fa0');
-  cx.fillStyle = g; cx.shadowBlur = 8; cx.shadowColor = '#a855f7';
-  const gap = w / N, bw = gap * .66, bh = 6;
-  for (let i = 0; i < N; i++) {
-    let v = 0;
-    if (playing) v = an ? fd[Math.floor(i * 56 / N)] / 255 : .3 + .5 * Math.abs(Math.sin(t / 300 + i));
-    lv[i] = Math.max(v, lv[i] - .04);
-    const blocks = Math.max(1, Math.round(lv[i] * h / bh));
-    for (let b = 0; b < blocks; b++) cx.fillRect(i * gap + (gap - bw) / 2, h - (b + 1) * bh, bw, bh - 2);
+  st.forEach((col, i) => g.addColorStop(i / (st.length - 1), col));
+  cx.fillStyle = g; cx.strokeStyle = g; cx.shadowBlur = cfg.glow; cx.shadowColor = st[Math.floor(st.length / 2)]; cx.lineCap = 'round';
+  const V = i => lv[Math.floor(i * 56 / n)], gap = w / n, bw = gap * cfg.thick;
+  if (cfg.style === 'blocks') {
+    for (let i = 0; i < n; i++) { const k = Math.max(1, Math.round(V(i) * h / 6)); for (let b = 0; b < k; b++) cx.fillRect(i * gap + (gap - bw) / 2, h - (b + 1) * 6, bw, 4); }
+  } else if (cfg.style === 'mirror') {
+    for (let i = 0; i < n; i++) { const bh = Math.max(2, V(i) * h * .9); cx.fillRect(i * gap + (gap - bw) / 2, (h - bh) / 2, bw, bh); }
+  } else if (cfg.style === 'wave' || cfg.style === 'fill') {
+    cx.beginPath();
+    for (let i = 0; i < n; i++) { const x = i * gap + gap / 2, y = h - Math.max(2, V(i) * h * .9); i ? cx.lineTo(x, y) : cx.moveTo(x, y); }
+    if (cfg.style === 'fill') { cx.lineTo(w, h); cx.lineTo(0, h); cx.closePath(); cx.globalAlpha = .8; cx.fill(); cx.globalAlpha = 1; }
+    else { cx.lineWidth = 3; cx.stroke(); }
+  } else if (cfg.style === 'circle') {
+    const m = Math.min(w, h), R = m * .22, L = m * .3;
+    cx.lineWidth = Math.max(2, 2 * Math.PI * R / n * cfg.thick);
+    for (let i = 0; i < n; i++) {
+      const a = i / n * 2 * Math.PI - Math.PI / 2, len = Math.max(2, V(i) * L);
+      cx.beginPath(); cx.moveTo(w / 2 + Math.cos(a) * R, h / 2 + Math.sin(a) * R); cx.lineTo(w / 2 + Math.cos(a) * (R + len), h / 2 + Math.sin(a) * (R + len)); cx.stroke();
+    }
+  } else {
+    for (let i = 0; i < n; i++) { const r = Math.min(h / 2, Math.max(2, gap * .5 * cfg.thick + V(i) * gap * 1.2)); cx.beginPath(); cx.arc(i * gap + gap / 2, h / 2, r, 0, 7); cx.fill(); }
   }
 }
-requestAnimationFrame(drawViz);
+function loop(t) {
+  requestAnimationFrame(loop);
+  const playing = !audio.paused;
+  if (an && playing) an.getByteFrequencyData(fd);
+  for (let j = 0; j < 64; j++) {
+    const raw = !playing ? 0 : an ? Math.min(1, fd[j] / 255 * cfg.gain) : .3 + .5 * Math.abs(Math.sin(t / 300 + j));
+    lv[j] = Math.max(raw, lv[j] - cfg.fall);
+  }
+  if ($('tab-player').classList.contains('on')) render(cv);
+  if (studio.classList.contains('open')) render(pv);
+}
+
+/* Estúdio visual */
+function openStudio() { showTab('visual'); initViz(); }
+function buildStudio() {
+  const y = sb.scrollTop; sb.innerHTML = '';
+  const add = (title, node) => { const d = document.createElement('div'); d.className = 'row'; d.innerHTML = '<label><span>' + title + '</span><span></span></label>'; d.appendChild(node); sb.appendChild(d); return d; };
+  const chips = (title, items, key) => {
+    const c = document.createElement('div'); c.className = 'chips';
+    for (const k in items) { const b = document.createElement('div'); b.className = 'chip' + (cfg[key] === k ? ' on' : ''); b.textContent = items[k]; b.onclick = () => { cfg[key] = k; save(); buildStudio(); }; c.appendChild(b); }
+    add(title, c);
+  };
+  chips('Forma', STYLES, 'style');
+  chips('Cores', {neon:'Neon', fogo:'Fogo', verde:'Verde', arco:'Arco-íris', custom:'Minhas cores'}, 'pal');
+  if (cfg.pal === 'custom') {
+    const d = document.createElement('div');
+    [['c1'], ['c2']].forEach(([k]) => { const i = document.createElement('input'); i.type = 'color'; i.value = cfg[k]; i.oninput = () => { cfg[k] = i.value; save(); }; d.appendChild(i); });
+    add('Cor inicial e final', d);
+  }
+  [['gain','Sensibilidade',.3,3,.1], ['fall','Queda suave',.01,.15,.01], ['n','Quantidade',12,64,1], ['thick','Espessura',.25,.95,.05], ['glow','Brilho',0,25,1], ['dim','Escurecer fundo',0,.85,.05]].forEach(([k, l, mn, mx, s]) => {
+    const i = document.createElement('input'); i.type = 'range'; i.className = 'nr'; i.min = mn; i.max = mx; i.step = s; i.value = cfg[k];
+    const row = add(l, i), val = row.querySelector('label span:last-child'); val.textContent = cfg[k];
+    i.oninput = () => { cfg[k] = +i.value; val.textContent = cfg[k]; if (k === 'dim') applyBg(); save(); };
+  });
+  const bt = document.createElement('div'); bt.className = 'chips';
+  [['Trocar imagem de fundo', () => $('bg-file').click()], ['Fundo padrão', () => { cfg.bg = ''; applyBg(); save(); }], ['Restaurar tudo', () => { cfg = Object.assign({}, DEF); applyBg(); save(); buildStudio(); }]].forEach(([t, f]) => { const b = document.createElement('div'); b.className = 'chip'; b.textContent = t; b.onclick = f; bt.appendChild(b); });
+  add('Fundo e padrões', bt);
+  sb.scrollTop = y;
+}
+$('bg-file').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const img = new Image();
+  img.onload = () => {
+    const s = Math.min(1, 720 / img.width), c = document.createElement('canvas');
+    c.width = img.width * s; c.height = img.height * s; c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    cfg.bg = c.toDataURL('image/jpeg', .8); applyBg(); save(); URL.revokeObjectURL(img.src);
+  };
+  img.src = URL.createObjectURL(f);
+};
+$('lib-file').onclick = () => $('mp3-file').click();
+applyBg(); requestAnimationFrame(loop);
+function showTab(n) {
+  $('tab-player').classList.toggle('on', n === 'player');
+  studio.classList.toggle('open', n === 'visual');
+  $('tab-lyrics').classList.toggle('on', n === 'lyrics');
+  document.querySelectorAll('.tb').forEach(b => b.classList.toggle('on', b.dataset.t === n));
+  if (n === 'visual') { buildStudio(); initViz(); }
+}
+document.querySelectorAll('.tb').forEach(b => b.onclick = () => showTab(b.dataset.t));
 </script>
 </body>
 </html>
