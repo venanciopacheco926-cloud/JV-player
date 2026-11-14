@@ -20,8 +20,8 @@ body{background:#000;color:#f0f0f5;display:flex;flex-direction:column;height:100
 #t{font-weight:700;color:#fff}#a{color:#8fa8ff}#b{color:#6fd3ee}
 #prog{display:flex;align-items:center;gap:8px;padding:4px 12px;font-size:3.6vw;font-weight:600}
 #cur{color:#22d3ee}#dur{color:#ff2fa0}
-.nr{-webkit-appearance:none;appearance:none;flex:1;width:100%;height:6px;border-radius:6px;background:linear-gradient(90deg,#22d3ee,#ff2fa0);outline:none}
-.nr::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#7fe9ff;box-shadow:0 0 8px #22d3ee,0 0 16px #22d3ee}
+.nr{-webkit-appearance:none;appearance:none;flex:1;width:100%;height:6px;border-radius:6px;background:linear-gradient(90deg,var(--g1,#22d3ee),var(--g2,#ff2fa0));outline:none}
+.nr::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--th,#7fe9ff);box-shadow:0 0 8px var(--g2,#22d3ee),0 0 16px var(--g2,#22d3ee)}
 .hs{position:absolute;background:none;border:0;border-radius:22%}
 .hs:active{background:rgba(255,255,255,.15)}
 .hsw{position:absolute;display:flex;align-items:center}
@@ -91,6 +91,7 @@ input[type=color]{width:56px;height:34px;border:1px solid #35354f;border-radius:
 <div id="card" class="band"><img src="img/card.jpg" alt=""><img id="recbtn" src="img/rec.png" alt="Gravar"><div id="rectime"></div><div id="info"><div id="t">Nome da Música</div><div id="a">Artista desconhecido</div><div id="b">Álbum desconhecido</div></div></div>
 <div id="prog"><span id="cur">00:00</span><input class="nr" id="seek" type="range" min="0" max="1000" value="0"><span id="dur">00:00</span></div>
 <div id="ctrl" class="band"><img src="img/controls.jpg" alt=""><svg id="pp" viewBox="0 0 24 24" fill="#e8fbff"></svg><div id="pl">Reproduzir</div></div>
+<div id="skin" class="band" style="display:none"></div>
 </div>
 <audio id="audio"></audio>
 <input type="file" id="mp3-file" accept="audio/*">
@@ -104,7 +105,7 @@ input[type=color]{width:56px;height:34px;border:1px solid #35354f;border-radius:
   <div id="lib-count"></div><div id="lib-list"></div>
 </div>
 <div id="tab-lyrics" class="tab" style="padding:12px 16px"><div class="lib-top"><b style="flex:1;align-self:center;color:#22d3ee">Letras .LRC</b></div><div id="lypv"></div><div id="ly-body" style="flex:1;overflow-y:auto"></div></div>
-<div id="tab-themes" class="tab" style="overflow-y:auto"><div id="thwrap" class="band"><img src="img/temas.jpg" alt="Temas"><div id="thsel"></div></div></div>
+<div id="tab-themes" class="tab" style="overflow-y:auto"><div id="thwrap" class="band"><img src="img/temas.jpg" alt="Temas"><div id="thsel"></div></div><div class="chips" style="padding:14px 16px"><div class="chip" id="th-def">Painel padrão (JV Music 2.0)</div></div></div>
 <div id="toast"></div>
 <div id="tabs"><button class="tb on" data-t="player"><span class="ic">🎵</span>Player</button><button class="tb" data-t="visual"><span class="ic">✨</span>Visual</button><button class="tb" data-t="lyrics"><span class="ic">📝</span>Letras</button><button class="tb" data-t="themes"><span class="ic">🎨</span>Temas</button></div>
 <script>
@@ -285,7 +286,7 @@ function render(c, W, H) {
 }
 function loop(t) {
   requestAnimationFrame(loop);
-  lyrLoop(t);
+  lyrLoop(t); skSync();
   const playing = !audio.paused;
   if (an && playing) an.getByteFrequencyData(fd);
   for (let j = 0; j < 64; j++) {
@@ -578,7 +579,7 @@ function applyTheme(th) {
   cfg.bg = 'img/t/' + th.id + '.jpg'; cfg.pal = 'custom'; cfg.c1 = th.c[0]; cfg.c2 = th.c[1]; save(); applyBg();
   L.pal = 'custom'; L.ca = '#ffffff'; L.ci = '#c9c9dc'; L.cg = th.c[0]; saveL(); applyLyr();
   try { localStorage.setItem('jvtheme', th.id); } catch (e) {}
-  selTheme(th.id);
+  selTheme(th.id); setSkin(th.skin || null);
   const t = $('toast'); t.textContent = 'Tema ' + th.n + ' aplicado'; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 1600);
 }
 THEMES.forEach(th => {
@@ -587,6 +588,56 @@ THEMES.forEach(th => {
   b.onclick = () => applyTheme(th); $('thwrap').appendChild(b);
 });
 try { selTheme(localStorage.getItem('jvtheme')); } catch (e) {}
+
+/* Painéis dos temas */
+const SK = {"valeria": {"f": "1000205526", "hs": {"lib": [25, 585, 250, 810], "prev": [268, 600, 480, 820], "play": [485, 520, 750, 830], "next": [755, 600, 975, 820], "lrc": [985, 585, 1205, 810], "aud": [45, 950, 310, 1150], "volp": [930, 950, 1195, 1150], "minus": [435, 1040, 505, 1095], "plus": [815, 1040, 885, 1095]}, "info": [478, 181, 700, 375], "tl": [25, 455, 145, 510], "tr": [1085, 455, 1215, 510], "pr": [160, 439, 1065, 526], "vr": [495, 1016, 830, 1114], "pp": [617, 700, 78], "lb": [620, 900], "st": {"col": "#ffffff", "col2": "#e6e0e0", "ff": "serif", "fs": 3.7, "tlc": "#ffffff", "trc": "#ff3b57", "g1": "#ffffff", "g2": "#ff2a4d", "th": "#ffffff"}, "W": 1230, "H": 1279}, "chloe": {"f": "1000205522", "hs": {"lib": [35, 535, 255, 765], "prev": [265, 550, 465, 745], "play": [470, 480, 745, 790], "next": [765, 555, 965, 745], "lrc": [980, 540, 1205, 775], "aud": [35, 880, 305, 1090], "volp": [930, 880, 1190, 1085], "minus": [435, 955, 500, 1015], "plus": [815, 955, 870, 1015]}, "info": [500, 120, 750, 330], "tl": [25, 420, 150, 470], "tr": [1085, 420, 1215, 470], "pr": [165, 404, 1085, 486], "vr": [495, 931, 825, 1039], "pp": [615, 633, 78], "lb": [615, 850], "st": {"col": "#ffffff", "col2": "#d9d9de", "ff": "serif", "fs": 3.7, "tlc": "#ffffff", "trc": "#e0173a", "g1": "#ffffff", "g2": "#e0173a", "th": "#ffffff"}, "W": 1230, "H": 1279}, "teo": {"f": "1000205523", "hs": {"lib": [30, 570, 250, 780], "prev": [265, 580, 470, 750], "play": [470, 490, 760, 810], "next": [765, 580, 975, 755], "lrc": [985, 570, 1205, 785], "aud": [35, 945, 300, 1150], "volp": [945, 950, 1190, 1150], "minus": [435, 1025, 500, 1080], "plus": [810, 1025, 865, 1080]}, "info": [495, 125, 740, 335], "tl": [25, 430, 150, 480], "tr": [1080, 430, 1215, 480], "pr": [160, 409, 1065, 501], "vr": [495, 996, 815, 1094], "pp": [617, 660, 78], "lb": [617, 873], "st": {"col": "#f6e7d0", "col2": "#e8d5b8", "ff": "sans-serif", "fs": 3.7, "tlc": "#f6e7d0", "trc": "#f6e7d0", "g1": "#fff1d6", "g2": "#b5121b", "th": "#fff1d6"}, "W": 1230, "H": 1279}, "hikari": {"f": "1000205524", "hs": {"lib": [30, 605, 255, 825], "prev": [262, 620, 475, 820], "play": [480, 540, 760, 840], "next": [755, 620, 975, 820], "lrc": [985, 610, 1205, 835], "aud": [25, 965, 305, 1180], "volp": [925, 975, 1205, 1180], "minus": [445, 1050, 500, 1105], "plus": [820, 1050, 875, 1105]}, "info": [495, 210, 720, 407], "tl": [20, 480, 140, 535], "tr": [1085, 480, 1215, 535], "pr": [160, 459, 1075, 556], "vr": [505, 1021, 825, 1129], "pp": [617, 700, 78], "lb": [615, 912], "st": {"col": "#ffffff", "col2": "#ffe6ee", "ff": "sans-serif", "fs": 3.7, "tlc": "#ffffff", "trc": "#ffffff", "g1": "#ffffff", "g2": "#ff3b6b", "th": "#ffffff"}, "W": 1230, "H": 1279}};
+const SKT = {valeria:['#ff2a4d','#ffffff'], chloe:['#e0173a','#ffffff'], teo:['#ffd36b','#b5121b'], hikari:['#ff5a8a','#ffffff']};
+THEMES.forEach(t => { if (SK[t.id]) { t.skin = t.id; t.c = SKT[t.id]; } });
+let skinId = null; const skEl = $('skin');
+function setSkin(id) {
+  const s = SK[id]; skinId = s ? id : null;
+  ['card', 'prog', 'ctrl', 'logo'].forEach(k => $(k).style.display = s ? 'none' : '');
+  skEl.style.display = s ? 'block' : 'none'; skEl.innerHTML = '';
+  if (!s) return;
+  const W = s.W, H = s.H, st = s.st;
+  const add = (tag, r, css) => {
+    const e = document.createElement(tag), [x0, y0, x1, y1] = r;
+    Object.assign(e.style, {position:'absolute', left:x0 / W * 100 + '%', top:y0 / H * 100 + '%', width:(x1 - x0) / W * 100 + '%', height:(y1 - y0) / H * 100 + '%'}, css || {});
+    skEl.appendChild(e); return e;
+  };
+  skEl.style.setProperty('--g1', st.g1); skEl.style.setProperty('--g2', st.g2); skEl.style.setProperty('--th', st.th);
+  const im = document.createElement('img'); im.src = 'img/s/' + id + '.jpg'; skEl.appendChild(im);
+  const [ix0, iy0, ix1, iy1] = s.info, lh = (iy1 - iy0) / 3;
+  ['t', 'a', 'b'].forEach((k, i) => {
+    const e = add('div', [ix0, iy0 + lh * i, ix1, iy0 + lh * (i + 1)], {display:'flex', alignItems:'center', font:(i ? 400 : 700) + ' ' + st.fs + 'vw ' + st.ff, color:i ? st.col2 : st.col});
+    e.innerHTML = '<span id="sk-' + k + '" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%"></span>';
+  });
+  [['cur', s.tl, st.tlc, 'flex-start'], ['dur', s.tr, st.trc, 'flex-end']].forEach(([k, r, col, al]) => {
+    add('div', r, {display:'flex', alignItems:'center', justifyContent:al, font:'600 ' + st.fs + 'vw ' + st.ff, color:col}).innerHTML = '<span id="sk-' + k + '">00:00</span>';
+  });
+  add('div', s.pr, {display:'flex', alignItems:'center'}).innerHTML = '<input class="nr" id="sk-seek" type="range" min="0" max="1000" value="0">';
+  add('div', s.vr, {display:'flex', alignItems:'center'}).innerHTML = '<input class="nr" id="sk-vol" type="range" min="0" max="1" step="0.01" value="' + audio.volume + '">';
+  $('sk-seek').oninput = () => { if (audio.duration) audio.currentTime = $('sk-seek').value / 1000 * audio.duration; };
+  $('sk-vol').oninput = () => { audio.volume = +$('sk-vol').value; };
+  const [cx, cy] = s.pp;
+  add('div', [cx - 52, cy - 52, cx + 52, cy + 52], {pointerEvents:'none'}).innerHTML = '<svg id="sk-pp" viewBox="0 0 24 24" fill="#fff" style="width:100%;height:100%;filter:drop-shadow(0 0 6px ' + st.g2 + ')"></svg>';
+  const [lx, ly] = s.lb;
+  add('div', [lx - 125, ly - 32, lx + 125, ly + 32], {display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none', font:'italic 400 ' + st.fs * 1.15 + 'vw serif', color:'#fff'}).innerHTML = '<span id="sk-pl">Reproduzir</span>';
+  for (const k in s.hs) { const b = add('button', s.hs[k]); b.className = 'hs'; b.onclick = ACT[k]; }
+}
+function skSync() {
+  if (!skinId) return;
+  ['t', 'a', 'b'].forEach(k => { const e = $('sk-' + k), v = $(k).textContent; if (e && e.textContent !== v) e.textContent = v; });
+  const pl = $('sk-pl'), pp = $('sk-pp'), ic = audio.paused ? PLAY : PAUSE;
+  if (pl) pl.textContent = audio.paused ? 'Reproduzir' : 'Pausar';
+  if (pp && pp.dataset.s !== ic) { pp.dataset.s = ic; pp.innerHTML = ic; }
+  const cu = $('sk-cur'), du = $('sk-dur'), sk = $('sk-seek');
+  if (cu) cu.textContent = fmt(audio.currentTime);
+  if (du) du.textContent = fmt(audio.duration);
+  if (sk && audio.duration && document.activeElement !== sk) sk.value = audio.currentTime / audio.duration * 1000;
+}
+$('th-def').onclick = () => { setSkin(null); const t = $('toast'); t.textContent = 'Painel padrão'; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 1600); };
+try { const t0 = THEMES.find(x => x.id === localStorage.getItem('jvtheme')); if (t0 && t0.skin) setSkin(t0.skin); } catch (e) {}
 </script>
 </body>
 </html>
