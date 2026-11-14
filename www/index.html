@@ -82,6 +82,8 @@ input[type=color]{width:56px;height:34px;border:1px solid #35354f;border-radius:
 .go{margin-top:10px;padding:12px;text-align:center;border-radius:12px;background:linear-gradient(90deg,#22d3ee,#ff2fa0);color:#000;font-weight:700}
 #thsel{position:absolute;display:none;border:2px solid #fff;border-radius:10px;box-shadow:0 0 14px #fff,0 0 28px #22d3ee;pointer-events:none}
 #toast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);background:#12121c;border:1px solid #22d3ee;color:#fff;padding:8px 16px;border-radius:18px;font-size:.85rem;z-index:20;display:none}
+#eqs{display:none;position:fixed;inset:0;background:#000;z-index:15;align-items:center;justify-content:center}#eqs.open{display:flex}
+#eqw{position:relative;width:min(100vw,177.78vh);aspect-ratio:1672/941}#eqw img,#eqw canvas{position:absolute;inset:0;width:100%;height:100%;display:block}#eqc{touch-action:none}
 </style>
 </head>
 <body>
@@ -100,6 +102,7 @@ input[type=color]{width:56px;height:34px;border:1px solid #35354f;border-radius:
 <div id="studio"><div class="lib-top"><b id="st-title">Estúdio visual</b></div>
 <div id="pvbox"><canvas id="pv"></canvas></div><div id="st-body"></div></div>
 <div id="recpanel"><div class="lib-top"><b id="rp-title">Gravar vídeo</b><button id="rp-close">Fechar</button></div><div id="rp-body"></div><div class="go" id="rp-go">Iniciar gravação</div></div>
+<div id="eqs"><div id="eqw"><img src="img/eq.jpg" alt=""><canvas id="eqc" width="1280" height="720"></canvas></div></div>
 <div id="library">
   <div class="lib-top"><input id="lib-search" type="search" placeholder="Buscar música ou artista"><button id="lib-file">Arquivo</button><button id="lib-close">Fechar</button></div>
   <div id="lib-count"></div><div id="lib-list"></div>
@@ -117,7 +120,7 @@ let lyricsData = [], lastActive = -1, library = [], queue = [], qi = -1;
 const HS = {lib:[22,192,1118,1295], prev:[203,360,1125,1295], play:[368,578,1090,1340], next:[585,745,1125,1295],
   lrc:[755,925,1118,1295], aud:[30,225,1335,1495], minus:[330,375,1395,1455], plus:[630,680,1395,1455], volp:[715,915,1335,1495]};
 const ACT = {lib:openLibrary, prev:()=>step(-1), next:()=>step(1), play:toggle, lrc:()=>$('lrc-file').click(),
-  aud:()=>openStudio(), minus:()=>setVol(-.1), plus:()=>setVol(.1), volp:()=>setVol(.1)};
+  aud:()=>openEQ(), minus:()=>setVol(-.1), plus:()=>setVol(.1), volp:()=>setVol(.1)};
 const place = (el, [x0,x1,y0,y1]) => { el.style.left = x0/9.41+'%'; el.style.width = (x1-x0)/9.41+'%'; el.style.top = (y0-1090)/4.1+'%'; el.style.height = (y1-y0)/4.1+'%'; };
 for (const k in ACT) { const b = document.createElement('button'); b.className = 'hs'; place(b, HS[k]); b.onclick = ACT[k]; $('ctrl').appendChild(b); }
 const vw = document.createElement('div'); vw.className = 'hsw'; place(vw, [385,622,1395,1455]);
@@ -240,7 +243,7 @@ function initViz() {
       ac = new (window.AudioContext || window.webkitAudioContext)();
       const src = msrc = ac.createMediaElementSource(audio);
       an = ac.createAnalyser(); an.fftSize = 128; an.smoothingTimeConstant = .75;
-      src.connect(an); an.connect(ac.destination);
+      eqBuild(src, an); an.connect(ac.destination);
       fd = new Uint8Array(an.frequencyBinCount);
     } catch (e) { ac = null; an = null; }
   }
@@ -286,7 +289,7 @@ function render(c, W, H) {
 }
 function loop(t) {
   requestAnimationFrame(loop);
-  lyrLoop(t); skSync();
+  lyrLoop(t); skSync(); if (eqOpen()) eqDraw(t);
   const playing = !audio.paused;
   if (an && playing) an.getByteFrequencyData(fd);
   for (let j = 0; j < 64; j++) {
@@ -520,7 +523,7 @@ async function startRec() {
   initViz();
   const [W, H] = DIMS[R.res] || DIMS[720]; rcv.width = W; rcv.height = H;
   const stream = rcv.captureStream(+R.fps);
-  if (ac && msrc) { recDst = ac.createMediaStreamDestination(); msrc.connect(recDst); stream.addTrack(recDst.stream.getAudioTracks()[0]); }
+  if (ac && msrc) { recDst = ac.createMediaStreamDestination(); (an || msrc).connect(recDst); stream.addTrack(recDst.stream.getAudioTracks()[0]); }
   else if (audio.captureStream) { const at = audio.captureStream().getAudioTracks()[0]; if (at) stream.addTrack(at); }
   recPath = 'jv-music-' + Date.now() + '.' + (mt.startsWith('video/mp4') ? 'mp4' : 'webm'); recFirst = true; wq = Promise.resolve();
   rec = new MediaRecorder(stream, { mimeType: mt, videoBitsPerSecond: +R.q * 1e6, audioBitsPerSecond: 192000 });
@@ -533,7 +536,7 @@ async function startRec() {
   };
   rec.onstop = async () => {
     $('rectime').textContent = 'Salvando...'; await wq;
-    try { if (recDst) msrc.disconnect(recDst); } catch (e) {}
+    try { if (recDst) (an || msrc).disconnect(recDst); } catch (e) {}
     try { const u = await plug('Filesystem').getUri({ path: recPath, directory: 'CACHE' }); await plug('Share').share({ title: 'JV Music', files: [u.uri] }); } catch (e) {}
     $('rectime').textContent = '';
   };
@@ -638,6 +641,95 @@ function skSync() {
 }
 $('th-def').onclick = () => { setSkin(null); const t = $('toast'); t.textContent = 'Painel padrão'; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 1600); };
 try { const t0 = THEMES.find(x => x.id === localStorage.getItem('jvtheme')); if (t0 && t0.skin) setSkin(t0.skin); } catch (e) {}
+
+/* Equalizador */
+const ED = {g: new Array(22).fill(0), bass: .5, virt: .5, vol: .5, on: true, mute: false};
+let EQ = Object.assign({}, ED, {g: ED.g.slice()});
+try { Object.assign(EQ, JSON.parse(localStorage.getItem('jveq') || '{}')); if (!Array.isArray(EQ.g) || EQ.g.length !== 22) EQ.g = ED.g.slice(); } catch (e) {}
+const saveEQ = () => { try { localStorage.setItem('jveq', JSON.stringify(EQ)); } catch (e) {} };
+let EQN = null;
+const kVirt = v => v < .5 ? v * 2 : 1 + (v - .5) * 3;
+function eqApply() {
+  audio.muted = !!EQ.mute;
+  if (!EQN) return;
+  EQN.f.forEach((b, i) => b.gain.value = EQ.g[i]);
+  EQN.bass.gain.value = (EQ.bass - .5) * 24; EQN.side.gain.value = kVirt(EQ.virt); EQN.master.gain.value = EQ.vol * 2;
+  EQN.inG.gain.value = EQ.on ? 1 : 0; EQN.byp.gain.value = EQ.on ? 0 : 1;
+}
+function eqBuild(src, an) {
+  const mk = v => { const g = ac.createGain(); g.gain.value = v; return g; }, N = 22, f = [];
+  for (let i = 0; i < N; i++) { const b = ac.createBiquadFilter(); b.type = 'peaking'; b.frequency.value = 31 * Math.pow(16000 / 31, i / (N - 1)); b.Q.value = 3; f.push(b); if (i) f[i - 1].connect(b); }
+  const bass = ac.createBiquadFilter(); bass.type = 'lowshelf'; bass.frequency.value = 140; f[N - 1].connect(bass);
+  const sp = ac.createChannelSplitter(2), mg = ac.createChannelMerger(2), lm = mk(.5), rm = mk(.5), ls = mk(.5), rs = mk(-.5), mid = mk(1), side = mk(1), inv = mk(-1);
+  bass.connect(sp); sp.connect(lm, 0); sp.connect(ls, 0); sp.connect(rm, 1); sp.connect(rs, 1);
+  lm.connect(mid); rm.connect(mid); ls.connect(side); rs.connect(side);
+  mid.connect(mg, 0, 0); mid.connect(mg, 0, 1); side.connect(mg, 0, 0); side.connect(inv); inv.connect(mg, 0, 1);
+  const master = mk(1), comp = ac.createDynamicsCompressor(); comp.threshold.value = -3; comp.knee.value = 6; comp.ratio.value = 12;
+  mg.connect(master); master.connect(comp); comp.connect(an);
+  const inG = mk(1), byp = mk(0); src.connect(inG); inG.connect(f[0]); src.connect(byp); byp.connect(an);
+  EQN = {f, bass, side, master, inG, byp}; eqApply();
+}
+const EQG = {c0: 207, st: 65.95, cw: 38, n: 22, y0: 160, y1: 517, cells: 16};
+const KN = [
+  {k:'bass', x:312, y:722, r:100, img:'img/k_grave.png', ty:880, t:v => { const d = (v - .5) * 24; return (d >= 0 ? '+' : '') + d.toFixed(1) + ' dB'; }},
+  {k:'virt', x:836, y:725, r:82, img:'img/k_virt.png', ty:840, t:v => Math.round(kVirt(v) * 100) + '%'},
+  {k:'vol', x:1360, y:722, r:100, img:'img/k_vol.png', ty:880, t:v => Math.round(v * 200) + '%'}];
+const eqc = $('eqc'), ecx = eqc.getContext('2d');
+function eqOpen() { return $('eqs').classList.contains('open'); }
+function eqDraw(t) {
+  const c = ecx, step = (EQG.y1 - EQG.y0) / EQG.cells; c.setTransform(1280 / 1672, 0, 0, 1280 / 1672, 0, 0); c.clearRect(0, 0, 1672, 941);
+  for (let i = 0; i < EQG.n; i++) {
+    const x = EQG.c0 + i * EQG.st - EQG.cw / 2, lit = Math.round((EQ.g[i] + 12) / 24 * EQG.cells);
+    if (i >= 8 && i <= 11) { c.shadowBlur = 0; c.fillStyle = 'rgba(6,6,18,.88)'; c.fillRect(x - 2, EQG.y0 - 4, EQG.cw + 4, EQG.y1 - EQG.y0 + 8); }
+    for (let k = 0; k < EQG.cells; k++) {
+      if (k < lit) { c.fillStyle = k > 12 ? '#e9e9ff' : '#b9b9f5'; c.shadowColor = '#8f8fff'; c.shadowBlur = 10; } else { c.fillStyle = 'rgba(190,190,235,.2)'; c.shadowBlur = 0; }
+      c.beginPath(); c.rect(x, EQG.y1 - (k + 1) * step + 3.5, EQG.cw, 14.5); c.fill();
+    }
+  }
+  c.shadowBlur = 0;
+  KN.forEach(n => {
+    const im = img(n.img);
+    if (ok(im)) { c.save(); c.translate(n.x, n.y); c.rotate((EQ[n.k] - .5) * 1.5 * Math.PI); c.drawImage(im, -n.r, -n.r, n.r * 2, n.r * 2); c.restore(); }
+    c.font = '600 26px serif'; c.textAlign = 'center'; c.fillStyle = '#dcdcff'; c.fillText(n.t(EQ[n.k]), n.x, n.ty);
+  });
+  [[78, 757, EQ.on, '#9a9aff'], [1592, 756, EQ.mute, '#ff4d6d']].forEach(([x, y, on, col]) => {
+    if (!on) return; c.strokeStyle = col; c.lineWidth = 4; c.shadowColor = col; c.shadowBlur = 16; c.beginPath(); c.arc(x, y, 50, 0, 7); c.stroke(); c.shadowBlur = 0;
+  });
+}
+let drag = null;
+const pt = e => { const r = eqc.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * 1672, (e.clientY - r.top) / r.height * 941]; };
+function barSet(x, y) {
+  const i = Math.round((x - EQG.c0) / EQG.st); if (i < 0 || i >= EQG.n) return;
+  EQ.g[i] = Math.max(-12, Math.min(12, 12 - (y - EQG.y0) / (EQG.y1 - EQG.y0) * 24)); eqApply();
+}
+eqc.onpointerdown = e => {
+  const [x, y] = pt(e); eqc.setPointerCapture(e.pointerId);
+  if (x > 160 && x < 1630 && y > 150 && y < 530) { drag = {m:'bars'}; barSet(x, y); return; }
+  for (const n of KN) if (Math.hypot(x - n.x, y - n.y) < n.r + 35) { drag = {m:'knob', n, a0:Math.atan2(y - n.y, x - n.x), v0:EQ[n.k]}; return; }
+  drag = {m:'btn'};
+};
+eqc.onpointermove = e => {
+  if (!drag) return; const [x, y] = pt(e);
+  if (drag.m === 'bars') barSet(x, y);
+  else if (drag.m === 'knob') { let d = Math.atan2(y - drag.n.y, x - drag.n.x) - drag.a0; d = Math.atan2(Math.sin(d), Math.cos(d)); EQ[drag.n.k] = Math.max(0, Math.min(1, drag.v0 + d / (1.5 * Math.PI))); eqApply(); }
+};
+eqc.onpointerup = e => { if (!drag) return; const [x, y] = pt(e), m = drag.m; drag = null; if (m === 'btn') eqBtn(x, y); saveEQ(); };
+function eqBtn(x, y) {
+  const near = (cx, cy) => Math.hypot(x - cx, y - cy) < 50, top = y > 35 && y < 90;
+  if (top && ((x > 1572 && x < 1625) || (x > 1465 && x < 1520))) closeEQ();
+  else if (top && x >= 1520 && x <= 1572) { EQ.g.fill(0); EQ.bass = EQ.virt = EQ.vol = .5; eqApply(); }
+  else if (near(78, 757)) { EQ.on = !EQ.on; eqApply(); }
+  else if (near(1592, 756)) { EQ.mute = !EQ.mute; eqApply(); }
+}
+function openEQ() {
+  initViz(); $('eqs').classList.add('open');
+  const so = plug('ScreenOrientation'); if (so && so.lock) Promise.resolve(so.lock({orientation:'landscape'})).catch(() => {});
+}
+function closeEQ() {
+  $('eqs').classList.remove('open'); saveEQ();
+  const so = plug('ScreenOrientation'); if (so && so.unlock) Promise.resolve(so.unlock()).catch(() => {});
+}
+eqApply();
 </script>
 </body>
 </html>
