@@ -80,6 +80,8 @@ input[type=color]{width:56px;height:34px;border:1px solid #35354f;border-radius:
 #rp-title{flex:1;align-self:center;color:#ff4d6d}
 #rp-body{overflow-y:auto}
 .go{margin-top:10px;padding:12px;text-align:center;border-radius:12px;background:linear-gradient(90deg,#22d3ee,#ff2fa0);color:#000;font-weight:700}
+#thsel{position:absolute;display:none;border:2px solid #fff;border-radius:10px;box-shadow:0 0 14px #fff,0 0 28px #22d3ee;pointer-events:none}
+#toast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);background:#12121c;border:1px solid #22d3ee;color:#fff;padding:8px 16px;border-radius:18px;font-size:.85rem;z-index:20;display:none}
 </style>
 </head>
 <body>
@@ -102,7 +104,9 @@ input[type=color]{width:56px;height:34px;border:1px solid #35354f;border-radius:
   <div id="lib-count"></div><div id="lib-list"></div>
 </div>
 <div id="tab-lyrics" class="tab" style="padding:12px 16px"><div class="lib-top"><b style="flex:1;align-self:center;color:#22d3ee">Letras .LRC</b></div><div id="lypv"></div><div id="ly-body" style="flex:1;overflow-y:auto"></div></div>
-<div id="tabs"><button class="tb on" data-t="player"><span class="ic">🎵</span>Player</button><button class="tb" data-t="visual"><span class="ic">✨</span>Visual</button><button class="tb" data-t="lyrics"><span class="ic">📝</span>Letras</button></div>
+<div id="tab-themes" class="tab" style="overflow-y:auto"><div id="thwrap" class="band"><img src="img/temas.jpg" alt="Temas"><div id="thsel"></div></div></div>
+<div id="toast"></div>
+<div id="tabs"><button class="tb on" data-t="player"><span class="ic">🎵</span>Player</button><button class="tb" data-t="visual"><span class="ic">✨</span>Visual</button><button class="tb" data-t="lyrics"><span class="ic">📝</span>Letras</button><button class="tb" data-t="themes"><span class="ic">🎨</span>Temas</button></div>
 <script>
 const $ = id => document.getElementById(id);
 const audio = $('audio'), lyricsBox = $('lyrics-container'), panel = $('library'), libList = $('lib-list'), libCount = $('lib-count'), libSearch = $('lib-search'), seek = $('seek');
@@ -336,6 +340,7 @@ function showTab(n) {
   $('tab-player').classList.toggle('on', n === 'player');
   studio.classList.toggle('open', n === 'visual');
   $('tab-lyrics').classList.toggle('on', n === 'lyrics');
+  $('tab-themes').classList.toggle('on', n === 'themes');
   document.querySelectorAll('.tb').forEach(b => b.classList.toggle('on', b.dataset.t === n));
   if (n === 'visual') { buildStudio(); initViz(); }
   if (n === 'lyrics') buildLyr();
@@ -437,7 +442,7 @@ const rcv = document.createElement('canvas'), vcv = document.createElement('canv
 const IMG = {}, img = s => IMG[s] || (IMG[s] = Object.assign(new Image(), {src: s})), ok = i => i.complete && i.naturalWidth;
 let recOn = false, rec = null, recStart = 0, recPath = '', recFirst = true, wq = Promise.resolve(), prevLA = -2, lineSince = 0, recDst = null, wl = null;
 const plug = n => (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins[n]) || null;
-const b64 = blob => new Promise(r => { const f = new FileReader(); f.onload = () => r(String(f.result).split(',')[1]); f.readAsDataURL(blob); });
+const b64 = blob => new Promise(r => { const f = new FileReader(); f.onload = () => r(String(f.result).split(';base64,').pop()); f.readAsDataURL(blob); });
 
 function recFrame(t) {
   const W = rcv.width, H = rcv.height, k = W / 390, cx = rcx;
@@ -561,6 +566,27 @@ function buildRec() {
 $('recbtn').onclick = () => { if (recOn) stopRec(); else { buildRec(); recPanel.classList.add('open'); } };
 $('rp-close').onclick = () => recPanel.classList.remove('open');
 $('rp-go').onclick = startRec;
+
+/* Temas */
+const THEMES = [{"id": "valeria", "n": "valeria", "r": [42, 482, 215, 820], "c": ["#ff2f82", "#ff3feb"]}, {"id": "sirius", "n": "Sírius", "r": [224, 482, 376, 820], "c": ["#235cff", "#ff3fe9"]}, {"id": "ayla", "n": "Ayla", "r": [385, 482, 536, 820], "c": ["#ff2e37", "#3f6dff"]}, {"id": "noah", "n": "Noah", "r": [545, 482, 697, 820], "c": ["#4fff3f", "#ff4e3f"]}, {"id": "teo", "n": "teo", "r": [703, 482, 850, 820], "c": ["#ff2c84", "#ff4e3f"]}, {"id": "chloe", "n": "chloe", "r": [858, 482, 1008, 820], "c": ["#ff34ec", "#ff3f58"]}, {"id": "cleo", "n": "Cléo", "r": [1015, 482, 1180, 820], "c": ["#265cff", "#ff3f4c"]}, {"id": "akira", "n": "Akira", "r": [36, 848, 213, 1175], "c": ["#ff295d", "#ff2fa0"]}, {"id": "hikari", "n": "Hikari", "r": [222, 848, 376, 1175], "c": ["#ff3f6e", "#ff3fc7"]}, {"id": "mtlove", "n": "MT love", "r": [385, 848, 533, 1175], "c": ["#ff23a1", "#f13fff"]}, {"id": "teorix", "n": "teorix", "r": [527, 848, 688, 1175], "c": ["#14ff52", "#ff2e37"]}, {"id": "lumi", "n": "Lumi", "r": [697, 848, 850, 1175], "c": ["#3666ff", "#6e3fff"]}, {"id": "beatrice", "n": "Beatrice", "r": [860, 848, 1008, 1175], "c": ["#ff1dc7", "#ff3f73"]}, {"id": "elisa", "n": "Elisa", "r": [1010, 848, 1185, 1175], "c": ["#1ec4ff", "#ff4e3f"]}];
+function selTheme(id) {
+  const th = THEMES.find(t => t.id === id); if (!th) return;
+  const [x0, y0, x1, y1] = th.r, s = $('thsel').style;
+  s.display = 'block'; s.left = x0 / 12.31 + '%'; s.top = y0 / 12.78 + '%'; s.width = (x1 - x0) / 12.31 + '%'; s.height = (y1 - y0) / 12.78 + '%';
+}
+function applyTheme(th) {
+  cfg.bg = 'img/t/' + th.id + '.jpg'; cfg.pal = 'custom'; cfg.c1 = th.c[0]; cfg.c2 = th.c[1]; save(); applyBg();
+  L.pal = 'custom'; L.ca = '#ffffff'; L.ci = '#c9c9dc'; L.cg = th.c[0]; saveL(); applyLyr();
+  try { localStorage.setItem('jvtheme', th.id); } catch (e) {}
+  selTheme(th.id);
+  const t = $('toast'); t.textContent = 'Tema ' + th.n + ' aplicado'; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 1600);
+}
+THEMES.forEach(th => {
+  const b = document.createElement('button'); b.className = 'hs'; const [x0, y0, x1, y1] = th.r;
+  b.style.left = x0 / 12.31 + '%'; b.style.top = y0 / 12.78 + '%'; b.style.width = (x1 - x0) / 12.31 + '%'; b.style.height = (y1 - y0) / 12.78 + '%';
+  b.onclick = () => applyTheme(th); $('thwrap').appendChild(b);
+});
+try { selTheme(localStorage.getItem('jvtheme')); } catch (e) {}
 </script>
 </body>
 </html>
