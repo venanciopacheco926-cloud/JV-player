@@ -418,7 +418,7 @@ applyLyr();
 const msp = () => (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MediaSession) || null;
 const msCall = (name, arg) => { const M = msp(); if (!M || !M[name]) return; try { Promise.resolve(M[name](arg)).catch(() => {}); } catch (e) {} };
 function msUpdate() {
-  msCall('setMetadata', { title: $('t').textContent, artist: $('a').textContent, album: $('b').textContent });
+  msCall('setMetadata', { title: $('t').textContent, artist: $('a').textContent, album: $('b').textContent, artwork: [{ src: 'https://raw.githubusercontent.com/venanciopacheco926-cloud/JV-player/main/www/img/notif.jpg', sizes: '512x512', type: 'image/jpeg' }] });
   msCall('setPlaybackState', { playbackState: audio.paused ? 'paused' : 'playing' });
 }
 function msInit() {
